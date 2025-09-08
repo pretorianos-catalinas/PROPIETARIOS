@@ -1,21 +1,52 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registro de Salida</title>
-<style>
-  body { font-family: Arial; background: #f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; }
-  .container { background:#fff; padding:20px; border-radius:15px; box-shadow:0 2px 5px rgba(0,0,0,0.2); text-align:center; width:300px;}
-  input { width:80%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #ccc;}
-  button { padding:10px 20px; border:none; border-radius:10px; background:#ff9900; color:#fff; cursor:pointer; font-size:16px;}
-  .mensaje { margin-top:15px; font-weight:bold; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Salida</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background: #fff;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 300px;
+    }
+    input {
+      width: 80%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      background: #ff9900;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .mensaje {
+      margin-top: 15px;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
 
 <div class="container">
-  <h2>Registro de Salida</h2>
+  <h2>Registrar Salida</h2>
   <input type="number" id="lote" placeholder="Número de Lote" required><br>
   <input type="text" id="contraseña" placeholder="Contraseña" required><br>
   <button id="logoutBtn">Registrar Salida</button>
@@ -23,63 +54,74 @@
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, child, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, get, child, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
-  authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
-  databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
-  projectId: "propietarios-catalinas-c-8b026",
-  storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
-  messagingSenderId: "10002796108",
-  appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
+    authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
+    databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
+    projectId: "propietarios-catalinas-c-8b026",
+    storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
+    messagingSenderId: "10002796108",
+    appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const logoutBtn = document.getElementById("logoutBtn");
-const mensaje = document.getElementById("mensaje");
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-logoutBtn.addEventListener("click", async () => {
-  const lote = document.getElementById("lote").value.trim();
-  const contraseña = document.getElementById("contraseña").value.trim();
+  const logoutBtn = document.getElementById("logoutBtn");
+  const mensaje = document.getElementById("mensaje");
 
-  if (!lote || !contraseña) {
-    mensaje.textContent = "Completa todos los campos";
-    mensaje.style.color = "red";
-    return;
-  }
+  logoutBtn.addEventListener("click", async () => {
+    const lote = document.getElementById("lote").value.trim();
+    const contraseña = document.getElementById("contraseña").value.trim();
 
-  const snapshot = await get(child(ref(db), `propietarios/${lote}`));
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    if (data.contraseña === contraseña) {
-      const now = new Date();
-      const hora = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
-      const fecha = now.getDate().toString().padStart(2,'0') + "/" + (now.getMonth()+1).toString().padStart(2,'0') + "/" + now.getFullYear();
-      const timestamp = now.getTime();
+    if (!lote || !contraseña) {
+      mensaje.textContent = "Completa todos los campos";
+      mensaje.style.color = "red";
+      return;
+    }
 
-      await push(ref(db, `propietarios/${lote}/eventos`), {
-        entrada: "",
-        salida: `${hora} (${fecha})`,
-        timestamp
-      });
+    const snapshot = await get(child(ref(db), `propietarios/${lote}`));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      if (data.contraseña === contraseña) {
+        const ahora = new Date();
+        const hora = ahora.getHours().toString().padStart(2, '0');
+        const minuto = ahora.getMinutes().toString().padStart(2, '0');
+        const fecha = `${ahora.getDate().toString().padStart(2,'0')}/${(ahora.getMonth()+1).toString().padStart(2,'0')}/${ahora.getFullYear()}`;
+        const horaFormato = `${hora}:${minuto} (${fecha})`;
 
-      mensaje.textContent = `Salida registrada: ${hora} (${fecha})`;
-      mensaje.style.color = "green";
+        // Obtener el último evento sin salida
+        const eventosRef = ref(db, `propietarios/${lote}/eventos`);
+        const eventosSnap = await get(eventosRef);
+        let lastKey = null;
+        eventosSnap.forEach(childSnap => { lastKey = childSnap.key; });
 
-      setTimeout(() => window.location.href = "https://www.google.com.ar/", 1000);
+        if (lastKey) {
+          // Actualizar la salida del último evento
+          await update(ref(db, `propietarios/${lote}/eventos/${lastKey}`), { salida: horaFormato });
+          mensaje.textContent = `Salida registrada: ${horaFormato}`;
+          mensaje.style.color = "green";
 
+          setTimeout(() => {
+            window.location.href = "https://www.google.com.ar/";
+          }, 1000);
+        } else {
+          mensaje.textContent = "No hay entrada registrada para este lote";
+          mensaje.style.color = "red";
+        }
+
+      } else {
+        mensaje.textContent = "Contraseña incorrecta";
+        mensaje.style.color = "red";
+      }
     } else {
-      mensaje.textContent = "Contraseña incorrecta";
+      mensaje.textContent = "Lote no encontrado";
       mensaje.style.color = "red";
     }
-  } else {
-    mensaje.textContent = "Lote no encontrado";
-    mensaje.style.color = "red";
-  }
-});
+  });
 </script>
 
 </body>
