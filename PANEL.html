@@ -5,38 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel de Propietarios</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    background: #f2f2f2;
-    padding: 20px;
-  }
-  h1 {
-    text-align: center;
-    color: #333;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 16px;
-    margin-top: 20px;
-    background: #fff;
-  }
-  th, td {
-    border: 2px solid #000;
-    padding: 8px;
-    text-align: left;
-  }
-  th {
-    background-color: #ff9900;
-    color: #fff;
-  }
-  tr:nth-child(even) {
-    background-color: #f9f9f9;
-  }
-  .resaltado {
-    background-color: #a0f0a0 !important;
-    transition: background-color 3s;
-  }
+body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
+h1 { text-align: center; color: #333; }
+table { width:100%; border-collapse: collapse; font-size:18px; margin-top:20px; background:#fff; }
+th, td { border:2px solid #000; padding:8px; text-align:left; }
+th { background-color:#ff9900; color:#fff; }
+tr:nth-child(even) { background-color:#f9f9f9; }
+tr.resaltado { background-color: #90ee90; transition: background 2s; }
 </style>
 </head>
 <body>
@@ -48,14 +23,11 @@
     <tr>
       <th>#Lote</th>
       <th>Propietario(a)</th>
-      <th>Contraseña</th>
       <th>Hora de Entrada</th>
       <th>Hora de Salida</th>
     </tr>
   </thead>
-  <tbody>
-    <!-- Filas dinámicas de Firebase -->
-  </tbody>
+  <tbody></tbody>
 </table>
 
 <script type="module">
@@ -77,52 +49,45 @@ const db = getDatabase(app);
 const panelTable = document.getElementById("panelTable").querySelector("tbody");
 
 onValue(ref(db, 'propietarios'), (snapshot) => {
-  let filas = [];
-
-  snapshot.forEach(childSnap => {
+  const rows = [];
+  snapshot.forEach((childSnap) => {
     const prop = childSnap.val();
     const eventos = prop.eventos || [];
-
     eventos.forEach(evento => {
-      filas.push({
+      rows.push({
         lote: prop.lote,
         propietario: prop.nombre,
-        contraseña: prop.contraseña,
         entrada: evento.entrada || "",
         salida: evento.salida || ""
       });
     });
   });
 
-  // Ordenar del más reciente al más antiguo según hora de entrada
-  filas.sort((a, b) => {
-    const fechaA = a.entrada ? new Date(a.entrada.split(' ')[0].split('(').join('')) : new Date(0);
-    const fechaB = b.entrada ? new Date(b.entrada.split(' ')[0].split('(').join('')) : new Date(0);
+  // Ordenar por el último evento primero (más reciente arriba)
+  rows.sort((a,b) => {
+    const fechaA = a.entrada ? new Date(a.entrada.split('(')[1].replace(')','')) : new Date(0);
+    const fechaB = b.entrada ? new Date(b.entrada.split('(')[1].replace(')','')) : new Date(0);
     return fechaB - fechaA;
   });
 
   panelTable.innerHTML = "";
-  filas.forEach((fila, index) => {
+  rows.forEach((row, index) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${fila.lote}</td>
-      <td>${fila.propietario}</td>
-      <td>${fila.contraseña}</td>
-      <td>${fila.entrada}</td>
-      <td>${fila.salida}</td>
+      <td>${row.lote}</td>
+      <td>${row.propietario}</td>
+      <td>${row.entrada}</td>
+      <td>${row.salida}</td>
     `;
     panelTable.appendChild(tr);
 
-    // Resaltar solo el último evento por 10 segundos
-    if(index === 0){
-      tr.classList.add('resaltado');
-      setTimeout(() => {
-        tr.classList.remove('resaltado');
-      }, 10000);
+    // Resaltar solo el último evento durante 10s
+    if(index === 0) {
+      tr.classList.add("resaltado");
+      setTimeout(() => { tr.classList.remove("resaltado"); }, 10000);
     }
   });
 });
 </script>
-
 </body>
 </html>
