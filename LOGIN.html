@@ -23,7 +23,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, get, child, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { getDatabase, ref, get, child, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -51,12 +51,17 @@
       return;
     }
 
-    const snapshot = await get(child(ref(db), `propietarios/${lote}`));
+    const propietarioRef = ref(db, `propietarios/${lote}`);
+    const snapshot = await get(propietarioRef);
+
     if (snapshot.exists()) {
       const data = snapshot.val();
       if (data.contraseña === contraseña) {
         const horaActual = new Date().toLocaleString();
-        update(ref(db, `propietarios/${lote}`), { entrada: horaActual })
+
+        // Crear un nuevo evento de entrada en el nodo 'eventos'
+        const eventosRef = ref(db, `propietarios/${lote}/eventos`);
+        push(eventosRef, { entrada: horaActual, salida: "" })
           .then(() => {
             mensaje.textContent = `Entrada registrada: ${horaActual}`;
             mensaje.style.color = "green";
@@ -64,7 +69,9 @@
           .catch((err) => {
             mensaje.textContent = "Error al registrar entrada";
             mensaje.style.color = "red";
+            console.error(err);
           });
+
       } else {
         mensaje.textContent = "Contraseña incorrecta";
         mensaje.style.color = "red";
