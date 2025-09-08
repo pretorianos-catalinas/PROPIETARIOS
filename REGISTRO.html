@@ -3,94 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Propietarios</title>
+  <title>Panel de Propietarios</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f2f2f2;
+      background: #f2f2f2;
       padding: 20px;
     }
     h1 {
       text-align: center;
       color: #333;
     }
-    form {
-      background: #fff;
-      padding: 20px;
-      border-radius: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      max-width: 600px;
-      margin: 0 auto 20px auto;
-    }
-    form input {
-      width: calc(50% - 12px);
-      margin: 5px;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-    }
-    form button {
-      display: block;
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 10px;
-      background-color: #ff9900;
-      color: #fff;
-      font-size: 16px;
-      cursor: pointer;
-    }
     table {
       width: 100%;
       border-collapse: collapse;
-      background-color: #f9f9f9;
-      border-radius: 10px;
-      overflow: hidden;
+      font-size: 18px;
+      margin-top: 20px;
+      background: #fff;
     }
     th, td {
-      padding: 10px;
-      border-bottom: 1px solid #ddd;
+      border: 2px solid #000;
+      padding: 8px;
       text-align: left;
     }
     th {
       background-color: #ff9900;
       color: #fff;
     }
-    td input {
-      width: 90%;
-      padding: 5px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
     }
-    td button {
-      padding: 5px 10px;
-      border: none;
-      border-radius: 5px;
-      background-color: #333;
-      color: #fff;
-      cursor: pointer;
+    form {
+      margin-top: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    input, button {
+      padding: 8px;
+      font-size: 16px;
     }
   </style>
 </head>
 <body>
 
-<h1>Registro de Propietarios</h1>
+<h1>Panel de Propietarios</h1>
 
+<!-- Formulario para registrar un nuevo propietario -->
 <form id="registroForm">
-  <input type="text" id="nombre" placeholder="Nombre" required>
-  <input type="text" id="apellido" placeholder="Apellido">
-  <input type="text" id="dni" placeholder="DNI">
-  <input type="number" id="lote" placeholder="Lote" required>
-  <input type="text" id="contraseña" placeholder="Contraseña" required>
-  <input type="text" id="patente" placeholder="Patente">
-  <input type="text" id="vehiculo" placeholder="Vehículo">
-  <input type="text" id="color" placeholder="Color">
-  <button type="submit">Guardar Propietario</button>
+  <input type="text" placeholder="Lote" id="lote" required>
+  <input type="text" placeholder="Nombre" id="nombre" required>
+  <input type="text" placeholder="Apellido" id="apellido">
+  <input type="text" placeholder="DNI" id="dni">
+  <input type="text" placeholder="Contraseña" id="contraseña" required>
+  <input type="text" placeholder="Patente" id="patente">
+  <input type="text" placeholder="Vehículo" id="vehiculo">
+  <input type="text" placeholder="Color" id="color">
+  <input type="text" placeholder="Hora de Entrada" id="entrada" required>
+  <input type="text" placeholder="Hora de Salida" id="salida">
+  <button type="submit">Registrar Evento</button>
 </form>
 
-<h2>Propietarios Registrados</h2>
-<table id="propietariosTable">
+<table id="panelTable">
   <thead>
     <tr>
       <th>#Lote</th>
@@ -101,7 +75,8 @@
       <th>Patente</th>
       <th>Vehículo</th>
       <th>Color</th>
-      <th>Acciones</th>
+      <th>Hora de Entrada</th>
+      <th>Hora de Salida</th>
     </tr>
   </thead>
   <tbody>
@@ -109,101 +84,101 @@
   </tbody>
 </table>
 
-<!-- Firebase SDKs -->
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, set, get, child, onValue, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, onValue, push, set, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
-    authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
-    databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
-    projectId: "propietarios-catalinas-c-8b026",
-    storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
-    messagingSenderId: "10002796108",
-    appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
+  authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
+  databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
+  projectId: "propietarios-catalinas-c-8b026",
+  storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
+  messagingSenderId: "10002796108",
+  appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+};
 
-  // Inicializar Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const panelTable = document.getElementById("panelTable").querySelector("tbody");
+const form = document.getElementById("registroForm");
 
-  const registroForm = document.getElementById("registroForm");
-  const propietariosTable = document.getElementById("propietariosTable").querySelector("tbody");
-
-  // Guardar nuevo propietario
-  registroForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const lote = document.getElementById("lote").value.trim();
-    const nombre = document.getElementById("nombre").value.trim();
-    const contraseña = document.getElementById("contraseña").value.trim();
-
-    if (!nombre || !lote || !contraseña) {
-      alert("Nombre, Lote y Contraseña son obligatorios.");
-      return;
-    }
-
-    const data = {
-      nombre: nombre,
-      apellido: document.getElementById("apellido").value.trim(),
-      dni: document.getElementById("dni").value.trim(),
-      lote: lote,
-      contraseña: contraseña,
-      patente: document.getElementById("patente").value.trim(),
-      vehiculo: document.getElementById("vehiculo").value.trim(),
-      color: document.getElementById("color").value.trim()
-    };
-
-    set(ref(db, 'propietarios/' + lote), data)
-      .then(() => {
-        alert("Propietario guardado correctamente");
-        registroForm.reset();
-      })
-      .catch((error) => alert(error));
-  });
-
-  // Mostrar tabla en tiempo real
+// Función para actualizar la tabla
+const actualizarTabla = () => {
   const propietariosRef = ref(db, 'propietarios');
   onValue(propietariosRef, (snapshot) => {
-    propietariosTable.innerHTML = "";
+    panelTable.innerHTML = "";
+    let contador = 0;
+
     snapshot.forEach((childSnap) => {
       const prop = childSnap.val();
-      const tr = document.createElement("tr");
+      const eventos = prop.eventos || [];
 
-      tr.innerHTML = `
-        <td>${prop.lote}</td>
-        <td><input value="${prop.nombre}"></td>
-        <td><input value="${prop.apellido || ''}"></td>
-        <td><input value="${prop.dni || ''}"></td>
-        <td><input value="${prop.contraseña}"></td>
-        <td><input value="${prop.patente || ''}"></td>
-        <td><input value="${prop.vehiculo || ''}"></td>
-        <td><input value="${prop.color || ''}"></td>
-        <td><button data-lote="${prop.lote}">Actualizar</button></td>
-      `;
-      const btn = tr.querySelector("button");
-      btn.addEventListener("click", () => {
-        const updatedData = {
-          nombre: tr.children[1].querySelector("input").value.trim(),
-          apellido: tr.children[2].querySelector("input").value.trim(),
-          dni: tr.children[3].querySelector("input").value.trim(),
-          contraseña: tr.children[4].querySelector("input").value.trim(),
-          patente: tr.children[5].querySelector("input").value.trim(),
-          vehiculo: tr.children[6].querySelector("input").value.trim(),
-          color: tr.children[7].querySelector("input").value.trim(),
-        };
-        if (!updatedData.nombre || !prop.lote || !updatedData.contraseña) {
-          alert("Nombre, Lote y Contraseña son obligatorios.");
-          return;
-        }
-        update(ref(db, 'propietarios/' + prop.lote), updatedData)
-          .then(() => alert("Propietario actualizado correctamente"))
-          .catch((error) => alert(error));
+      eventos.forEach((evento) => {
+        if (contador >= 50) return; // Limitar a 50 filas
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+          <td>${prop.lote}</td>
+          <td>${prop.nombre}</td>
+          <td>${prop.apellido || ''}</td>
+          <td>${prop.dni || ''}</td>
+          <td>${prop.contraseña}</td>
+          <td>${prop.patente || ''}</td>
+          <td>${prop.vehiculo || ''}</td>
+          <td>${prop.color || ''}</td>
+          <td>${evento.entrada || ''}</td>
+          <td>${evento.salida || ''}</td>
+        `;
+        panelTable.appendChild(tr);
+        contador++;
       });
-
-      propietariosTable.appendChild(tr);
     });
   });
+};
+
+// Inicializar tabla
+actualizarTabla();
+
+// Función para registrar un nuevo evento
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const lote = document.getElementById('lote').value;
+  const nombre = document.getElementById('nombre').value;
+  const apellido = document.getElementById('apellido').value;
+  const dni = document.getElementById('dni').value;
+  const contraseña = document.getElementById('contraseña').value;
+  const patente = document.getElementById('patente').value;
+  const vehiculo = document.getElementById('vehiculo').value;
+  const color = document.getElementById('color').value;
+  const entrada = document.getElementById('entrada').value;
+  const salida = document.getElementById('salida').value;
+
+  const propietarioRef = ref(db, `propietarios/${lote}`);
+  const snapshot = await get(propietarioRef);
+
+  // Si el propietario no existe, crear nodo principal
+  if (!snapshot.exists()) {
+    await set(propietarioRef, {
+      lote,
+      nombre,
+      apellido,
+      dni,
+      contraseña,
+      patente,
+      vehiculo,
+      color
+    });
+  }
+
+  // Agregar un nuevo evento
+  const eventosRef = ref(db, `propietarios/${lote}/eventos`);
+  await push(eventosRef, { entrada, salida });
+
+  // Limpiar formulario
+  form.reset();
+});
 </script>
 
 </body>
