@@ -15,47 +15,39 @@
 <body>
 <div class="container">
   <h2>Registro de Entrada</h2>
-  <input type="number" id="lote" placeholder="Número de Lote" required><br>
-  <input type="text" id="contraseña" placeholder="Contraseña" required><br>
-  <button id="loginBtn">Registrar Entrada</button>
-  <div class="mensaje" id="mensaje"></div>
+  <form id="loginForm">
+    <input type="number" id="lote" placeholder="Número de Lote" required><br>
+    <input type="text" id="password" placeholder="Contraseña" required><br>
+    <button type="submit">Registrar Entrada</button>
+  </form>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, child, push, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, get, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
-  authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
-  databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
-  projectId: "propietarios-catalinas-c-8b026",
-  storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
-  messagingSenderId: "10002796108",
-  appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
+    authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
+    databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
+    projectId: "propietarios-catalinas-c-8b026",
+    storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
+    messagingSenderId: "10002796108",
+    appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-const loginBtn = document.getElementById("loginBtn");
-const mensaje = document.getElementById("mensaje");
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const lote = document.getElementById("lote").value.trim();
+    const password = document.getElementById("password").value.trim();
 
-loginBtn.addEventListener("click", async () => {
-  const lote = document.getElementById("lote").value.trim();
-  const contraseña = document.getElementById("contraseña").value.trim();
+    const propietarioRef = ref(db, `propietarios/${lote}`);
+    const snapshot = await get(propietarioRef);
 
-  if (!lote || !contraseña) {
-    mensaje.textContent = "Completa todos los campos";
-    mensaje.style.color = "red";
-    return;
-  }
-
-  const snapshot = await get(child(ref(db), `propietarios/${lote}`));
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    if (data.contraseña === contraseña) {
-      // Hora y fecha en HH:MM (DD/MM/YYYY)
+    if (snapshot.exists() && snapshot.val().contraseña === password) {
       const now = new Date();
       const hora = now.getHours().toString().padStart(2,'0');
       const minutos = now.getMinutes().toString().padStart(2,'0');
@@ -64,21 +56,18 @@ loginBtn.addEventListener("click", async () => {
       const anio = now.getFullYear();
       const horaActual = `${hora}:${minutos} (${dia}/${mes}/${anio})`;
 
-      // Agregar evento de entrada
-      const eventosRef = ref(db, `propietarios/${lote}/eventos`);
-      await push(eventosRef, { entrada: horaActual });
+      await push(ref(db, `propietarios/${lote}/eventos`), { entrada: horaActual, salida: "" });
 
-      mensaje.textContent = `Entrada registrada: ${horaActual}`;
-      mensaje.style.color = "green";
+      alert("✅ Entrada registrada correctamente");
+
+      setTimeout(() => {
+        window.location.href = "https://www.google.com.ar/";
+      }, 1000);
+
     } else {
-      mensaje.textContent = "Contraseña incorrecta";
-      mensaje.style.color = "red";
+      alert("❌ Lote o contraseña incorrectos");
     }
-  } else {
-    mensaje.textContent = "Lote no encontrado";
-    mensaje.style.color = "red";
-  }
-});
+  });
 </script>
 </body>
 </html>
