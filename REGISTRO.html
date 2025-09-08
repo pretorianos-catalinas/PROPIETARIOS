@@ -7,20 +7,20 @@
   <style>
     body { font-family: Arial, sans-serif; background:#f2f2f2; margin:0; padding:20px; }
     h1 { text-align:center; color:#333; margin-bottom:18px; }
-    .card { background:#fff; padding:18px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.08); max-width:980px; margin:0 auto 20px; }
+    .card { background:#fff; padding:18px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.08); max-width:720px; margin:0 auto 20px; }
     .row { display:flex; gap:10px; flex-wrap:wrap; }
-    .row input { flex:1 1 180px; padding:10px; border:1px solid #ccc; border-radius:8px; }
+    .row input { flex:1 1 220px; padding:10px; border:1px solid #ccc; border-radius:8px; }
     button.primary { background:#28a745; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
     button.primary:hover { filter:brightness(.95); }
     .msg { margin-top:10px; font-weight:600; }
     .table-card { max-width:980px; margin: 18px auto 60px; background:#fff; padding:12px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.06); overflow:auto; }
-    table { width:100%; border-collapse:collapse; min-width:720px; }
-    th, td { padding:10px 8px; border-bottom:1px solid #e6e6e6; text-align:left; }
+    table { width:100%; border-collapse:collapse; min-width:640px; }
+    th, td { padding:10px 8px; border-bottom:1px solid #e6e6e6; text-align:left; vertical-align:middle; }
     th { background:#ff9900; color:#fff; position:sticky; top:0; z-index:2; }
-    td input { width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; }
+    td input { width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; box-sizing:border-box; }
     .btn-edit, .btn-save, .btn-del { padding:6px 8px; border-radius:6px; border:none; cursor:pointer; color:#fff; }
     .btn-edit { background:#007bff; }
-    .btn-save { background:#28a745; display:none; }
+    .btn-save { background:#218838; display:none; }
     .btn-del { background:#dc3545; }
     .small { font-size:13px; color:#666; }
     @media (max-width:760px){
@@ -35,10 +35,8 @@
   <div class="card">
     <form id="registroForm">
       <div class="row">
-        <input type="number" id="lote" placeholder="Lote (número)" required />
-        <input type="text" id="nombre" placeholder="Nombre" required />
-        <input type="text" id="apellido" placeholder="Apellido" />
-        <input type="text" id="dni" placeholder="DNI" />
+        <input type="text" id="propietario" placeholder="Propietario(a)" required />
+        <input type="number" id="lote" placeholder="Número de Lote" required />
         <input type="password" id="contraseña" placeholder="Contraseña" required />
       </div>
       <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
@@ -53,15 +51,14 @@
     <table aria-label="Lista de propietarios">
       <thead>
         <tr>
-          <th style="width:80px">Lote</th>
-          <th>Propietario</th>
-          <th style="width:120px">DNI</th>
-          <th style="width:140px">Contraseña</th>
-          <th style="width:170px">Acciones</th>
+          <th style="width:110px">Lote</th>
+          <th>Propietario(a)</th>
+          <th style="width:150px">Contraseña</th>
+          <th style="width:200px">Acciones</th>
         </tr>
       </thead>
       <tbody id="propietariosBody">
-        <tr><td colspan="5" class="small">Cargando...</td></tr>
+        <tr><td colspan="4" class="small">Cargando...</td></tr>
       </tbody>
     </table>
   </div>
@@ -75,11 +72,11 @@
     onValue,
     update,
     remove,
-    child,
-    get
+    get,
+    child
   } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-  // --- Configuración Firebase (usa la tuya) ---
+  // --- Configuración Firebase ---
   const firebaseConfig = {
     apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
     authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
@@ -93,50 +90,19 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  // Elementos DOM
+  // DOM
   const registroForm = document.getElementById("registroForm");
   const mensaje = document.getElementById("mensaje");
   const propietariosBody = document.getElementById("propietariosBody");
 
-  // Función para mostrar mensajes temporales
+  // Mensajes temporales
   function showMsg(text, color = "green", timeout = 3000) {
     mensaje.textContent = text;
     mensaje.style.color = color;
     if (timeout) setTimeout(()=> { if (mensaje.textContent === text) mensaje.textContent = ""; }, timeout);
   }
 
-  // Guardar nuevo propietario
-  registroForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const lote = document.getElementById("lote").value.trim();
-    const nombre = document.getElementById("nombre").value.trim();
-    const apellido = document.getElementById("apellido").value.trim();
-    const dni = document.getElementById("dni").value.trim();
-    const contraseña = document.getElementById("contraseña").value.trim();
-
-    if (!lote || !nombre || !contraseña) {
-      showMsg("Lote, Nombre y Contraseña son obligatorios.", "red");
-      return;
-    }
-
-    const data = {
-      nombre,
-      apellido,
-      dni: dni || "",
-      contraseña
-    };
-
-    try {
-      await set(ref(db, `propietarios/${lote}`), data);
-      showMsg("Propietario guardado correctamente.", "green");
-      registroForm.reset();
-    } catch (err) {
-      console.error(err);
-      showMsg("Error guardando propietario.", "red");
-    }
-  });
-
-  // Ayuda: dividir propietario (cadena) en nombre/apellido
+  // Divide nombre completo en nombre y apellido (última palabra => apellido)
   function splitNombreCompleto(full) {
     const trimmed = (full || "").trim();
     if (!trimmed) return { nombre: "", apellido: "" };
@@ -147,92 +113,118 @@
     return { nombre, apellido };
   }
 
-  // Escapar para evitar inyección simple al crear innerHTML
+  // Escapar para innerHTML
   function esc(s) {
     if (s === undefined || s === null) return "";
     return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
   }
 
-  // Escuchar cambios en propietarios en tiempo real
+  // Guardar nuevo propietario (pregunta si lote existe)
+  registroForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const propietario = document.getElementById("propietario").value.trim();
+    const lote = document.getElementById("lote").value.trim();
+    const contraseña = document.getElementById("contraseña").value;
+
+    if (!propietario || !lote || !contraseña) {
+      showMsg("Completa Propietario, Lote y Contraseña.", "red");
+      return;
+    }
+
+    try {
+      const propRef = ref(db, `propietarios/${lote}`);
+      const snap = await get(child(ref(db), `propietarios/${lote}`));
+      if (snap.exists()) {
+        const ok = confirm(`El lote ${lote} ya existe. ¿Deseas sobrescribir los datos?`);
+        if (!ok) return;
+      }
+
+      const { nombre, apellido } = splitNombreCompleto(propietario);
+      const data = {
+        propietario: propietario,
+        nombre: nombre,
+        apellido: apellido,
+        contraseña: contraseña
+      };
+
+      await set(propRef, data);
+      showMsg("Propietario guardado correctamente.", "green");
+      registroForm.reset();
+    } catch (err) {
+      console.error(err);
+      showMsg("Error al guardar.", "red");
+    }
+  });
+
+  // Escuchar propietarios en tiempo real
   const propietariosRef = ref(db, "propietarios");
   onValue(propietariosRef, (snapshot) => {
     propietariosBody.innerHTML = "";
     if (!snapshot.exists()) {
-      propietariosBody.innerHTML = `<tr><td colspan="5" class="small">No hay propietarios registrados.</td></tr>`;
+      propietariosBody.innerHTML = `<tr><td colspan="4" class="small">No hay propietarios registrados.</td></tr>`;
       return;
     }
 
     snapshot.forEach((childSnap) => {
       const prop = childSnap.val() || {};
-      const lote = prop.lote ?? childSnap.key;
-      const nombre = prop.nombre ?? "";
-      const apellido = prop.apellido ?? "";
-      const dni = prop.dni ?? "";
+      const loteKey = prop.lote ?? childSnap.key;
+      const fullName = prop.propietario ?? ((prop.nombre ?? "") + (prop.apellido ? " " + prop.apellido : "")).trim();
       const contraseña = prop.contraseña ?? "";
 
-      // Crear fila
       const tr = document.createElement("tr");
-
       tr.innerHTML = `
-        <td><input class="loteInput" value="${esc(lote)}" disabled></td>
-        <td><input class="propInput" value="${esc((nombre + " " + apellido).trim())}"></td>
-        <td><input class="dniInput" value="${esc(dni)}"></td>
+        <td><input class="loteInput" value="${esc(loteKey)}" disabled></td>
+        <td><input class="propInput" value="${esc(fullName)}"></td>
         <td><input class="passInput" value="${esc(contraseña)}" type="text"></td>
         <td>
-          <button class="btn-edit btn-edit-${esc(lote)}">Editar</button>
-          <button class="btn-save" style="display:none;">Guardar</button>
-          <button class="btn-del" style="margin-left:8px;">Eliminar</button>
+          <button class="btn-edit">Editar</button>
+          <button class="btn-save">Guardar</button>
+          <button class="btn-del">Eliminar</button>
         </td>
       `;
 
-      // Botones y inputs
       const propInput = tr.querySelector(".propInput");
-      const dniInput = tr.querySelector(".dniInput");
       const passInput = tr.querySelector(".passInput");
       const editBtn = tr.querySelector(".btn-edit");
       const saveBtn = tr.querySelector(".btn-save");
       const delBtn = tr.querySelector(".btn-del");
 
-      // Inicial: inputs deshabilitados salvo el campo propietario que puede mostrarse editable but disabled? keep editable disabled by default
+      // Inicial: inputs deshabilitados
       propInput.disabled = true;
-      dniInput.disabled = true;
       passInput.disabled = true;
+      saveBtn.style.display = "none";
 
       // Editar
       editBtn.addEventListener("click", () => {
         propInput.disabled = false;
-        dniInput.disabled = false;
         passInput.disabled = false;
+        propInput.focus();
         editBtn.style.display = "none";
         saveBtn.style.display = "inline-block";
-        propInput.focus();
       });
 
       // Guardar cambios
       saveBtn.addEventListener("click", async () => {
-        const loteKey = (tr.querySelector(".loteInput").value || "").toString().trim();
-        const propietarioStr = propInput.value.trim();
-        const dniVal = dniInput.value.trim();
+        const loteVal = (tr.querySelector(".loteInput").value || "").toString().trim();
+        const propietarioVal = propInput.value.trim();
         const passVal = passInput.value;
 
-        const { nombre: newNombre, apellido: newApellido } = splitNombreCompleto(propietarioStr);
-
-        if (!loteKey || !newNombre || !passVal) {
-          alert("Lote, Nombre (al menos) y Contraseña son obligatorios.");
+        if (!loteVal || !propietarioVal || !passVal) {
+          alert("Lote, Propietario y Contraseña son obligatorios.");
           return;
         }
 
-        const updated = {
-          nombre: newNombre,
-          apellido: newApellido,
-          dni: dniVal || "",
+        const { nombre, apellido } = splitNombreCompleto(propietarioVal);
+        const updates = {
+          propietario: propietarioVal,
+          nombre,
+          apellido,
           contraseña: passVal
         };
 
         try {
-          await update(ref(db, `propietarios/${loteKey}`), updated);
+          await update(ref(db, `propietarios/${loteVal}`), updates);
           propInput.disabled = true;
-          dniInput.disabled = true;
           passInput.disabled = true;
           editBtn.style.display = "inline-block";
           saveBtn.style.display = "none";
@@ -245,10 +237,11 @@
 
       // Eliminar
       delBtn.addEventListener("click", async () => {
-        const loteKey = (tr.querySelector(".loteInput").value || "").toString().trim();
-        if (!confirm(`¿Eliminar propietario del lote ${loteKey}? Esta acción no se puede deshacer.`)) return;
+        const loteVal = (tr.querySelector(".loteInput").value || "").toString().trim();
+        if (!loteVal) return;
+        if (!confirm(`¿Eliminar propietario del lote ${loteVal}?`)) return;
         try {
-          await remove(ref(db, `propietarios/${loteKey}`));
+          await remove(ref(db, `propietarios/${loteVal}`));
           showMsg("Propietario eliminado.", "green");
         } catch (err) {
           console.error(err);
@@ -259,8 +252,8 @@
       propietariosBody.appendChild(tr);
     });
   }, (err) => {
-    console.error("Error al leer propietarios:", err);
-    propietariosBody.innerHTML = `<tr><td colspan="5" class="small">Error cargando datos.</td></tr>`;
+    console.error("Error leyendo propietarios:", err);
+    propietariosBody.innerHTML = `<tr><td colspan="4" class="small">Error cargando datos.</td></tr>`;
   });
 </script>
 </body>
