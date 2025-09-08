@@ -22,65 +22,63 @@
 </div>
 
 <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, get, child, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+import { getDatabase, ref, get, child, push, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
-    authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
-    databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
-    projectId: "propietarios-catalinas-c-8b026",
-    storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
-    messagingSenderId: "10002796108",
-    appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
+  authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
+  databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
+  projectId: "propietarios-catalinas-c-8b026",
+  storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
+  messagingSenderId: "10002796108",
+  appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-  const loginBtn = document.getElementById("loginBtn");
-  const mensaje = document.getElementById("mensaje");
+const loginBtn = document.getElementById("loginBtn");
+const mensaje = document.getElementById("mensaje");
 
-  loginBtn.addEventListener("click", async () => {
-    const lote = document.getElementById("lote").value.trim();
-    const contraseña = document.getElementById("contraseña").value.trim();
+loginBtn.addEventListener("click", async () => {
+  const lote = document.getElementById("lote").value.trim();
+  const contraseña = document.getElementById("contraseña").value.trim();
 
-    if (!lote || !contraseña) {
-      mensaje.textContent = "Completa todos los campos";
-      mensaje.style.color = "red";
-      return;
-    }
+  if (!lote || !contraseña) {
+    mensaje.textContent = "Completa todos los campos";
+    mensaje.style.color = "red";
+    return;
+  }
 
-    const propietarioRef = ref(db, `propietarios/${lote}`);
-    const snapshot = await get(propietarioRef);
+  const snapshot = await get(child(ref(db), `propietarios/${lote}`));
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    if (data.contraseña === contraseña) {
+      // Hora y fecha en HH:MM (DD/MM/YYYY)
+      const now = new Date();
+      const hora = now.getHours().toString().padStart(2,'0');
+      const minutos = now.getMinutes().toString().padStart(2,'0');
+      const dia = now.getDate().toString().padStart(2,'0');
+      const mes = (now.getMonth()+1).toString().padStart(2,'0');
+      const anio = now.getFullYear();
+      const horaActual = `${hora}:${minutos} (${dia}/${mes}/${anio})`;
 
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      if (data.contraseña === contraseña) {
-        const horaActual = new Date().toLocaleString();
+      // Agregar evento de entrada
+      const eventosRef = ref(db, `propietarios/${lote}/eventos`);
+      await push(eventosRef, { entrada: horaActual });
 
-        // Crear un nuevo evento de entrada en el nodo 'eventos'
-        const eventosRef = ref(db, `propietarios/${lote}/eventos`);
-        push(eventosRef, { entrada: horaActual, salida: "" })
-          .then(() => {
-            mensaje.textContent = `Entrada registrada: ${horaActual}`;
-            mensaje.style.color = "green";
-          })
-          .catch((err) => {
-            mensaje.textContent = "Error al registrar entrada";
-            mensaje.style.color = "red";
-            console.error(err);
-          });
-
-      } else {
-        mensaje.textContent = "Contraseña incorrecta";
-        mensaje.style.color = "red";
-      }
+      mensaje.textContent = `Entrada registrada: ${horaActual}`;
+      mensaje.style.color = "green";
     } else {
-      mensaje.textContent = "Lote no encontrado";
+      mensaje.textContent = "Contraseña incorrecta";
       mensaje.style.color = "red";
     }
-  });
+  } else {
+    mensaje.textContent = "Lote no encontrado";
+    mensaje.style.color = "red";
+  }
+});
 </script>
 </body>
 </html>
