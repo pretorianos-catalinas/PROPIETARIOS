@@ -11,9 +11,9 @@ table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20p
 th, td { border-bottom: 1px solid rgba(0,0,0,0.1); border-right: 1px solid rgba(0,0,0,0.05); padding: 8px; text-align: left; }
 th { background-color: #ff9900; color: #fff; }
 tr:last-child td { border-bottom: none; }
-tr:hover td { background-color: #90ee90; transition: background-color 2s; }
-.highlight-entrada { background-color: #90ee90 !important; transition: background-color 5s; }
-.highlight-salida { background-color: #f08080 !important; transition: background-color 5s; }
+tr:hover td { background-color: #fff176; transition: background-color 1s; }
+.highlight-entrada { background-color: #90ee90 !important; transition: background-color 3s; }
+.highlight-salida { background-color: #f08080 !important; transition: background-color 3s; }
 </style>
 </head>
 <body>
@@ -101,10 +101,11 @@ onValue(propietariosRef, (snapshot) => {
       tr.classList.add(clase);
       if(ev.tipo === "Entrada") sonidoEntrada.play().catch(()=>{});
       else sonidoSalida.play().catch(()=>{});
-      setTimeout(()=>{tr.classList.remove(clase)},10000);
+      setTimeout(()=>{tr.classList.remove(clase)},5000);
     }
   });
 });
 </script>
 </body>
 </html>
+
