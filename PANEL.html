@@ -1,177 +1,81 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Panel de Propietarios</title>
-<style>
-  body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
-  h1 { text-align: center; color: #333; }
-  table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; }
-  th, td { border: 2px solid #000; padding: 8px; text-align: left; }
-  th { background-color: #ff9900; color: #fff; }
-  tbody tr:nth-child(even) { background-color: #f9f9f9; }
-  /* Colores para los 2 eventos más recientes */
-  .ultimo { background-color: #d4f4dd !important; }    /* verde un poco más marcado (evento más reciente) */
-  .penultimo { background-color: #e6f9e8 !important; } /* verde aún más suave (2º más reciente) */
-  .empty { text-align: center; color: #666; padding: 20px; }
-  @media (max-width: 900px) {
-    table{ font-size: 14px; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Control</title>
+  <style>
+    body { font-family: Arial; background:#f2f2f2; padding:20px;}
+    h2 { text-align:center; margin-bottom:20px; }
+    table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.2);}
+    th, td { border:1px solid #ccc; padding:10px; text-align:center; }
+    th { background:#333; color:#fff; }
+    tr:nth-child(even) { background:#f9f9f9; }
+    .reciente { background-color:#b2f2bb !important; }
+    .segundo { background-color:#d3f9d8 !important; }
+  </style>
 </head>
 <body>
-
-<h1>Panel de Propietarios</h1>
-
-<table id="panelTable" aria-label="Panel de eventos">
-  <thead>
-    <tr>
-      <th>#Lote</th>
-      <th>Nombre</th>
-      <th>Apellido</th>
-      <th>DNI</th>
-      <th>Contraseña</th>
-      <th>Patente</th>
-      <th>Vehículo</th>
-      <th>Color</th>
-      <th>Hora de Entrada</th>
-      <th>Hora de Salida</th>
-    </tr>
-  </thead>
-  <tbody>
-    <!-- Filas dinámicas -->
-  </tbody>
-</table>
+  <h2>Registro de Entradas y Salidas</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Propietario</th>
+        <th>Lote</th>
+        <th>Tipo</th>
+        <th>Hora</th>
+      </tr>
+    </thead>
+    <tbody id="eventos"></tbody>
+  </table>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
-  authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
-  databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
-  projectId: "propietarios-catalinas-c-8b026",
-  storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
-  messagingSenderId: "10002796108",
-  appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
+    authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
+    databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
+    projectId: "propietarios-catalinas-c-8b026",
+    storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
+    messagingSenderId: "10002796108",
+    appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const tbody = document.getElementById("panelTable").querySelector("tbody");
-const propietariosRef = ref(db, 'propietarios');
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
 
-function parseTimeFromCell(str){
-  if(!str) return 0;
-  // Formato esperado: "HH:MM (DD/MM/YYYY)"
-  const match = str.match(/(\d{2}):(\d{2})\s*\((\d{2})\/(\d{2})\/(\d{4})\)/);
-  if(match){
-    const [, h, m, d, mon, y] = match;
-    // crear ISO para evitar dependencias de locale
-    return new Date(`${y}-${mon}-${d}T${h}:${m}:00`).getTime();
-  }
-  // Si no coincide, intentar parsear ISO u otros formatos
-  const parsed = Date.parse(str);
-  if(!isNaN(parsed)) return parsed;
-  return 0;
-}
+  const eventosTbody = document.getElementById("eventos");
 
-onValue(propietariosRef, (snapshot) => {
-  try {
-    tbody.innerHTML = "";
-    let allEventos = [];
-
-    snapshot.forEach((childSnap) => {
-      const prop = childSnap.val() || {};
-      // Seguridad: lote puede venir como clave o como propiedad
-      const lote = prop.lote ?? childSnap.key;
-
-      // Obtener eventos: aceptar tanto objetos (push keys) como arrays
-      const eventosObj = prop.eventos ?? null;
-      let eventosArray = [];
-      if(eventosObj){
-        eventosArray = Array.isArray(eventosObj) ? eventosObj.filter(Boolean) : Object.values(eventosObj);
-      }
-
-      // Si no hay eventos pero hay entradas/salidas en el nodo principal (legacy), mostrarlo como fallback
-      if(eventosArray.length === 0 && (prop.entrada || prop.salida)){
-        eventosArray.push({ entrada: prop.entrada || "", salida: prop.salida || "" });
-      }
-
-      eventosArray.forEach((evento) => {
-        // Normalizar valores a string vacío si vienen undefined
-        const entrada = evento.entrada ?? "";
-        const salida = evento.salida ?? "";
-
-        const fechaEvento = Math.max(parseTimeFromCell(entrada), parseTimeFromCell(salida));
-        allEventos.push({
-          lote,
-          nombre: prop.nombre ?? "",
-          apellido: prop.apellido ?? "",
-          dni: prop.dni ?? "",
-          contraseña: prop.contraseña ?? "",
-          patente: prop.patente ?? "",
-          vehiculo: prop.vehiculo ?? "",
-          color: prop.color ?? "",
-          entrada,
-          salida,
-          fecha: fechaEvento
-        });
+  onValue(ref(db, "eventos"), (snapshot) => {
+    eventosTbody.innerHTML = "";
+    if (snapshot.exists()) {
+      const eventos = [];
+      snapshot.forEach(child => {
+        eventos.push(child.val());
       });
-    });
 
-    // Orden descendente: más reciente arriba
-    allEventos.sort((a, b) => b.fecha - a.fecha);
+      // Ordenar por fecha/hora descendente (más reciente primero)
+      eventos.sort((a, b) => {
+        return new Date(b.hora.replace(/(\d{2}):(\d{2}) \((\d{2})\/(\d{2})\/(\d{4})\)/, "$4-$3-$5T$1:$2")) -
+               new Date(a.hora.replace(/(\d{2}):(\d{2}) \((\d{2})\/(\d{2})\/(\d{4})\)/, "$4-$3-$5T$1:$2"));
+      });
 
-    if(allEventos.length === 0){
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td class="empty" colspan="10">No hay eventos registrados aún</td>`;
-      tbody.appendChild(tr);
-      return;
+      eventos.forEach((evento, index) => {
+        const tr = document.createElement("tr");
+        if (index === 0) tr.classList.add("reciente");
+        if (index === 1) tr.classList.add("segundo");
+        tr.innerHTML = `
+          <td>${evento.propietario}</td>
+          <td>${evento.lote}</td>
+          <td>${evento.tipo}</td>
+          <td>${evento.hora}</td>
+        `;
+        eventosTbody.appendChild(tr);
+      });
     }
-
-    // Límite opcional: mostrar solo los primeros N (puedes ajustar o quitar)
-    const MAX_FILAS = 500; // ajustable
-    const toDisplay = allEventos.slice(0, MAX_FILAS);
-
-    toDisplay.forEach((fila, index) => {
-      const tr = document.createElement("tr");
-      if(index === 0) tr.classList.add("ultimo");
-      else if(index === 1) tr.classList.add("penultimo");
-
-      tr.innerHTML = `
-        <td>${escapeHtml(fila.lote)}</td>
-        <td>${escapeHtml(fila.nombre)}</td>
-        <td>${escapeHtml(fila.apellido)}</td>
-        <td>${escapeHtml(fila.dni)}</td>
-        <td>${escapeHtml(fila.contraseña)}</td>
-        <td>${escapeHtml(fila.patente)}</td>
-        <td>${escapeHtml(fila.vehiculo)}</td>
-        <td>${escapeHtml(fila.color)}</td>
-        <td>${escapeHtml(fila.entrada)}</td>
-        <td>${escapeHtml(fila.salida)}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-  } catch (err) {
-    console.error("Error actualizando tabla:", err);
-    tbody.innerHTML = `<tr><td class="empty" colspan="10">Error al cargar datos (ver consola).</td></tr>`;
-  }
-});
-
-/* pequeña función para evitar inyección accidental si algún campo viene con caracteres HTML */
-function escapeHtml(str){
-  if(!str && str !== 0) return "";
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
+  });
 </script>
 </body>
 </html>
