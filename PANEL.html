@@ -33,8 +33,15 @@
     tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-    .reciente1 { background-color: #c8f7c5; } /* verde más intenso */
-    .reciente2 { background-color: #e0f7d8; } /* verde más suave */
+    /* Colores de transición */
+    .highlight {
+      background-color: #c8f7c5;
+      transition: background-color 2s ease;
+    }
+    .normal {
+      background-color: #f9f9f9;
+      transition: background-color 2s ease;
+    }
   </style>
 </head>
 <body>
@@ -74,6 +81,8 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const tbody = document.getElementById("panelTable").querySelector("tbody");
 
+let lastEventKey = null; // Para identificar la fila más reciente
+
 onValue(ref(db, 'propietarios'), (snapshot) => {
   let filas = [];
 
@@ -82,6 +91,7 @@ onValue(ref(db, 'propietarios'), (snapshot) => {
     const eventos = prop.eventos || {};
     for (let key in eventos) {
       filas.push({
+        key: key,
         propietario: prop.nombre,
         lote: prop.lote,
         contraseña: prop.contraseña,
@@ -100,8 +110,20 @@ onValue(ref(db, 'propietarios'), (snapshot) => {
 
   filas.forEach((fila, index) => {
     const tr = document.createElement("tr");
-    if (index === 0) tr.classList.add("reciente1");
-    else if (index === 1) tr.classList.add("reciente2");
+    tr.dataset.key = fila.key;
+
+    // Si es el evento más reciente y es diferente al anterior, agregar highlight
+    if (index === 0 && fila.key !== lastEventKey) {
+      tr.classList.add("highlight");
+      lastEventKey = fila.key;
+      // Quitar el highlight después de 10 segundos
+      setTimeout(() => {
+        tr.classList.remove("highlight");
+        tr.classList.add("normal");
+      }, 10000);
+    } else {
+      tr.classList.add("normal");
+    }
 
     tr.innerHTML = `
       <td>${fila.propietario}</td>
