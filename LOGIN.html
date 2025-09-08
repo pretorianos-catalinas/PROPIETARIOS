@@ -5,26 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login Entrada</title>
   <style>
-    body { font-family: Arial; background: #f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; }
+    body { font-family: Arial; background:#f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; }
     .container { background:#fff; padding:20px; border-radius:15px; box-shadow:0 2px 5px rgba(0,0,0,0.2); text-align:center; width:300px;}
     input { width:80%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #ccc;}
-    button { padding:10px 20px; border:none; border-radius:10px; background:#ff9900; color:#fff; cursor:pointer; font-size:16px;}
+    button { padding:10px 20px; border:none; border-radius:10px; background:#28a745; color:#fff; cursor:pointer; font-size:16px;}
     .mensaje { margin-top:15px; font-weight:bold; }
   </style>
 </head>
 <body>
 <div class="container">
-  <h2>Registro de Entrada</h2>
-  <form id="loginForm">
-    <input type="number" id="lote" placeholder="Número de Lote" required><br>
-    <input type="text" id="password" placeholder="Contraseña" required><br>
-    <button type="submit">Registrar Entrada</button>
-  </form>
+  <h2>Registrar Entrada</h2>
+  <input type="number" id="lote" placeholder="Número de Lote" required><br>
+  <input type="password" id="contraseña" placeholder="Contraseña" required><br>
+  <button id="loginBtn">Registrar Entrada</button>
+  <div class="mensaje" id="mensaje"></div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, get, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { getDatabase, ref, get, child, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -39,33 +38,48 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  document.getElementById("loginForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
+  const loginBtn = document.getElementById("loginBtn");
+  const mensaje = document.getElementById("mensaje");
+
+  function obtenerFechaHora() {
+    const ahora = new Date();
+    const hora = ahora.getHours().toString().padStart(2, '0');
+    const minutos = ahora.getMinutes().toString().padStart(2, '0');
+    const fecha = `${ahora.getDate().toString().padStart(2,'0')}/${(ahora.getMonth()+1).toString().padStart(2,'0')}/${ahora.getFullYear()}`;
+    return `${hora}:${minutos} (${fecha})`;
+  }
+
+  loginBtn.addEventListener("click", async () => {
     const lote = document.getElementById("lote").value.trim();
-    const password = document.getElementById("password").value.trim();
+    const contraseña = document.getElementById("contraseña").value.trim();
 
-    const propietarioRef = ref(db, `propietarios/${lote}`);
-    const snapshot = await get(propietarioRef);
+    if (!lote || !contraseña) {
+      mensaje.textContent = "Completa todos los campos";
+      mensaje.style.color = "red";
+      return;
+    }
 
-    if (snapshot.exists() && snapshot.val().contraseña === password) {
-      const now = new Date();
-      const hora = now.getHours().toString().padStart(2,'0');
-      const minutos = now.getMinutes().toString().padStart(2,'0');
-      const dia = now.getDate().toString().padStart(2,'0');
-      const mes = (now.getMonth()+1).toString().padStart(2,'0');
-      const anio = now.getFullYear();
-      const horaActual = `${hora}:${minutos} (${dia}/${mes}/${anio})`;
-
-      await push(ref(db, `propietarios/${lote}/eventos`), { entrada: horaActual, salida: "" });
-
-      alert("✅ Entrada registrada correctamente");
-
-      setTimeout(() => {
-        window.location.href = "https://www.google.com.ar/";
-      }, 1000);
-
+    const snapshot = await get(child(ref(db), `propietarios/${lote}`));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      if (data.contraseña === contraseña) {
+        const evento = {
+          propietario: data.nombre + " " + data.apellido,
+          lote: lote,
+          tipo: "Entrada",
+          hora: obtenerFechaHora()
+        };
+        await push(ref(db, "eventos"), evento);
+        mensaje.textContent = "Entrada registrada correctamente";
+        mensaje.style.color = "green";
+        setTimeout(() => window.location.href = "https://www.google.com.ar/", 1000);
+      } else {
+        mensaje.textContent = "Contraseña incorrecta";
+        mensaje.style.color = "red";
+      }
     } else {
-      alert("❌ Lote o contraseña incorrectos");
+      mensaje.textContent = "Lote no encontrado";
+      mensaje.style.color = "red";
     }
   });
 </script>
