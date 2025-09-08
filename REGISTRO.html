@@ -1,75 +1,267 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Propietario</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Registro de Propietarios</title>
   <style>
-    body { font-family: Arial; background:#f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; }
-    .container { background:#fff; padding:20px; border-radius:15px; box-shadow:0 2px 5px rgba(0,0,0,0.2); width:350px; }
-    h2 { text-align:center; margin-bottom:15px; }
-    input { width:90%; padding:10px; margin:8px 0; border-radius:8px; border:1px solid #ccc; }
-    button { width:100%; padding:10px; margin-top:15px; border:none; border-radius:10px; background:#007bff; color:#fff; font-size:16px; cursor:pointer; }
-    button:hover { background:#0056b3; }
-    .mensaje { margin-top:15px; text-align:center; font-weight:bold; }
+    body { font-family: Arial, sans-serif; background:#f2f2f2; margin:0; padding:20px; }
+    h1 { text-align:center; color:#333; margin-bottom:18px; }
+    .card { background:#fff; padding:18px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.08); max-width:980px; margin:0 auto 20px; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; }
+    .row input { flex:1 1 180px; padding:10px; border:1px solid #ccc; border-radius:8px; }
+    button.primary { background:#28a745; color:#fff; border:none; padding:10px 14px; border-radius:8px; cursor:pointer; }
+    button.primary:hover { filter:brightness(.95); }
+    .msg { margin-top:10px; font-weight:600; }
+    .table-card { max-width:980px; margin: 18px auto 60px; background:#fff; padding:12px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.06); overflow:auto; }
+    table { width:100%; border-collapse:collapse; min-width:720px; }
+    th, td { padding:10px 8px; border-bottom:1px solid #e6e6e6; text-align:left; }
+    th { background:#ff9900; color:#fff; position:sticky; top:0; z-index:2; }
+    td input { width:100%; padding:6px; border-radius:6px; border:1px solid #ccc; }
+    .btn-edit, .btn-save, .btn-del { padding:6px 8px; border-radius:6px; border:none; cursor:pointer; color:#fff; }
+    .btn-edit { background:#007bff; }
+    .btn-save { background:#28a745; display:none; }
+    .btn-del { background:#dc3545; }
+    .small { font-size:13px; color:#666; }
+    @media (max-width:760px){
+      .row input{ flex-basis:100%; }
+      table{ font-size:14px; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>Registrar Nuevo Propietario</h2>
-    <input type="text" id="nombre" placeholder="Nombre" required><br>
-    <input type="text" id="apellido" placeholder="Apellido" required><br>
-    <input type="number" id="lote" placeholder="Número de Lote" required><br>
-    <input type="password" id="contraseña" placeholder="Contraseña" required><br>
-    <button id="registroBtn">Guardar Propietario</button>
-    <div class="mensaje" id="mensaje"></div>
+  <h1>Registro de Propietarios</h1>
+
+  <div class="card">
+    <form id="registroForm">
+      <div class="row">
+        <input type="number" id="lote" placeholder="Lote (número)" required />
+        <input type="text" id="nombre" placeholder="Nombre" required />
+        <input type="text" id="apellido" placeholder="Apellido" />
+        <input type="text" id="dni" placeholder="DNI" />
+        <input type="password" id="contraseña" placeholder="Contraseña" required />
+      </div>
+      <div style="margin-top:12px; display:flex; gap:10px; align-items:center;">
+        <button type="submit" class="primary">Guardar Propietario</button>
+        <div id="mensaje" class="msg"></div>
+      </div>
+    </form>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  <div class="table-card">
+    <h3 style="margin:0 0 10px 0;">Propietarios Registrados</h3>
+    <table aria-label="Lista de propietarios">
+      <thead>
+        <tr>
+          <th style="width:80px">Lote</th>
+          <th>Propietario</th>
+          <th style="width:120px">DNI</th>
+          <th style="width:140px">Contraseña</th>
+          <th style="width:170px">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="propietariosBody">
+        <tr><td colspan="5" class="small">Cargando...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
-      authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
-      databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
-      projectId: "propietarios-catalinas-c-8b026",
-      storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
-      messagingSenderId: "10002796108",
-      appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import {
+    getDatabase,
+    ref,
+    set,
+    onValue,
+    update,
+    remove,
+    child,
+    get
+  } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  // --- Configuración Firebase (usa la tuya) ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
+    authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
+    databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
+    projectId: "propietarios-catalinas-c-8b026",
+    storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
+    messagingSenderId: "10002796108",
+    appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Elementos DOM
+  const registroForm = document.getElementById("registroForm");
+  const mensaje = document.getElementById("mensaje");
+  const propietariosBody = document.getElementById("propietariosBody");
+
+  // Función para mostrar mensajes temporales
+  function showMsg(text, color = "green", timeout = 3000) {
+    mensaje.textContent = text;
+    mensaje.style.color = color;
+    if (timeout) setTimeout(()=> { if (mensaje.textContent === text) mensaje.textContent = ""; }, timeout);
+  }
+
+  // Guardar nuevo propietario
+  registroForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const lote = document.getElementById("lote").value.trim();
+    const nombre = document.getElementById("nombre").value.trim();
+    const apellido = document.getElementById("apellido").value.trim();
+    const dni = document.getElementById("dni").value.trim();
+    const contraseña = document.getElementById("contraseña").value.trim();
+
+    if (!lote || !nombre || !contraseña) {
+      showMsg("Lote, Nombre y Contraseña son obligatorios.", "red");
+      return;
+    }
+
+    const data = {
+      nombre,
+      apellido,
+      dni: dni || "",
+      contraseña
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    try {
+      await set(ref(db, `propietarios/${lote}`), data);
+      showMsg("Propietario guardado correctamente.", "green");
+      registroForm.reset();
+    } catch (err) {
+      console.error(err);
+      showMsg("Error guardando propietario.", "red");
+    }
+  });
 
-    const registroBtn = document.getElementById("registroBtn");
-    const mensaje = document.getElementById("mensaje");
+  // Ayuda: dividir propietario (cadena) en nombre/apellido
+  function splitNombreCompleto(full) {
+    const trimmed = (full || "").trim();
+    if (!trimmed) return { nombre: "", apellido: "" };
+    const parts = trimmed.split(/\s+/);
+    if (parts.length === 1) return { nombre: parts[0], apellido: "" };
+    const apellido = parts.pop();
+    const nombre = parts.join(" ");
+    return { nombre, apellido };
+  }
 
-    registroBtn.addEventListener("click", async () => {
-      const nombre = document.getElementById("nombre").value.trim();
-      const apellido = document.getElementById("apellido").value.trim();
-      const lote = document.getElementById("lote").value.trim();
-      const contraseña = document.getElementById("contraseña").value.trim();
+  // Escapar para evitar inyección simple al crear innerHTML
+  function esc(s) {
+    if (s === undefined || s === null) return "";
+    return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
+  }
 
-      if (!nombre || !apellido || !lote || !contraseña) {
-        mensaje.textContent = "Completa todos los campos";
-        mensaje.style.color = "red";
-        return;
-      }
+  // Escuchar cambios en propietarios en tiempo real
+  const propietariosRef = ref(db, "propietarios");
+  onValue(propietariosRef, (snapshot) => {
+    propietariosBody.innerHTML = "";
+    if (!snapshot.exists()) {
+      propietariosBody.innerHTML = `<tr><td colspan="5" class="small">No hay propietarios registrados.</td></tr>`;
+      return;
+    }
 
-      try {
-        await set(ref(db, "propietarios/" + lote), {
-          nombre: nombre,
-          apellido: apellido,
-          contraseña: contraseña
-        });
-        mensaje.textContent = "Propietario registrado correctamente";
-        mensaje.style.color = "green";
-      } catch (err) {
-        mensaje.textContent = "Error al registrar propietario";
-        mensaje.style.color = "red";
-      }
+    snapshot.forEach((childSnap) => {
+      const prop = childSnap.val() || {};
+      const lote = prop.lote ?? childSnap.key;
+      const nombre = prop.nombre ?? "";
+      const apellido = prop.apellido ?? "";
+      const dni = prop.dni ?? "";
+      const contraseña = prop.contraseña ?? "";
+
+      // Crear fila
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td><input class="loteInput" value="${esc(lote)}" disabled></td>
+        <td><input class="propInput" value="${esc((nombre + " " + apellido).trim())}"></td>
+        <td><input class="dniInput" value="${esc(dni)}"></td>
+        <td><input class="passInput" value="${esc(contraseña)}" type="text"></td>
+        <td>
+          <button class="btn-edit btn-edit-${esc(lote)}">Editar</button>
+          <button class="btn-save" style="display:none;">Guardar</button>
+          <button class="btn-del" style="margin-left:8px;">Eliminar</button>
+        </td>
+      `;
+
+      // Botones y inputs
+      const propInput = tr.querySelector(".propInput");
+      const dniInput = tr.querySelector(".dniInput");
+      const passInput = tr.querySelector(".passInput");
+      const editBtn = tr.querySelector(".btn-edit");
+      const saveBtn = tr.querySelector(".btn-save");
+      const delBtn = tr.querySelector(".btn-del");
+
+      // Inicial: inputs deshabilitados salvo el campo propietario que puede mostrarse editable but disabled? keep editable disabled by default
+      propInput.disabled = true;
+      dniInput.disabled = true;
+      passInput.disabled = true;
+
+      // Editar
+      editBtn.addEventListener("click", () => {
+        propInput.disabled = false;
+        dniInput.disabled = false;
+        passInput.disabled = false;
+        editBtn.style.display = "none";
+        saveBtn.style.display = "inline-block";
+        propInput.focus();
+      });
+
+      // Guardar cambios
+      saveBtn.addEventListener("click", async () => {
+        const loteKey = (tr.querySelector(".loteInput").value || "").toString().trim();
+        const propietarioStr = propInput.value.trim();
+        const dniVal = dniInput.value.trim();
+        const passVal = passInput.value;
+
+        const { nombre: newNombre, apellido: newApellido } = splitNombreCompleto(propietarioStr);
+
+        if (!loteKey || !newNombre || !passVal) {
+          alert("Lote, Nombre (al menos) y Contraseña son obligatorios.");
+          return;
+        }
+
+        const updated = {
+          nombre: newNombre,
+          apellido: newApellido,
+          dni: dniVal || "",
+          contraseña: passVal
+        };
+
+        try {
+          await update(ref(db, `propietarios/${loteKey}`), updated);
+          propInput.disabled = true;
+          dniInput.disabled = true;
+          passInput.disabled = true;
+          editBtn.style.display = "inline-block";
+          saveBtn.style.display = "none";
+          showMsg("Propietario actualizado.", "green");
+        } catch (err) {
+          console.error(err);
+          showMsg("Error al actualizar.", "red");
+        }
+      });
+
+      // Eliminar
+      delBtn.addEventListener("click", async () => {
+        const loteKey = (tr.querySelector(".loteInput").value || "").toString().trim();
+        if (!confirm(`¿Eliminar propietario del lote ${loteKey}? Esta acción no se puede deshacer.`)) return;
+        try {
+          await remove(ref(db, `propietarios/${loteKey}`));
+          showMsg("Propietario eliminado.", "green");
+        } catch (err) {
+          console.error(err);
+          showMsg("Error al eliminar.", "red");
+        }
+      });
+
+      propietariosBody.appendChild(tr);
     });
-  </script>
+  }, (err) => {
+    console.error("Error al leer propietarios:", err);
+    propietariosBody.innerHTML = `<tr><td colspan="5" class="small">Error cargando datos.</td></tr>`;
+  });
+</script>
 </body>
 </html>
