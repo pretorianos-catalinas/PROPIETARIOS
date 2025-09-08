@@ -7,16 +7,18 @@
 <style>
 body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
 h1 { text-align: center; color: #333; }
-table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; border-radius: 10px; overflow: hidden; }
-th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 18px; margin-top: 20px; background: #fff; border-radius: 10px; overflow: hidden; }
+th, td { border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; padding: 10px; text-align: left; }
+th:last-child, td:last-child { border-right: none; }
 th { background-color: #ff9900; color: #fff; }
-tr:nth-child(even) { background-color: #f9f9f9; }
-tr:hover { background-color: #fff68f !important; transition: background-color 1s; }
-.highlight { transition: background-color 5s; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: #fff3b0; transition: background-color 1s; }
+.highlight-green { background-color: #90ee90 !important; transition: background-color 5s; }
+.highlight-red { background-color: #f7a3a3 !important; transition: background-color 5s; }
 </style>
 </head>
 <body>
-<h1>Panel de Propietarios</h1>
+<h1><b>PRETORIANOS:</b> Entrada y Salida de Propietarios</h1>
 <table id="panelTable">
   <thead>
     <tr>
@@ -28,6 +30,9 @@ tr:hover { background-color: #fff68f !important; transition: background-color 1s
   </thead>
   <tbody></tbody>
 </table>
+
+<audio id="entradaSound" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/ENTRADA.mp3"></audio>
+<audio id="salidaSound" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/SALIDA.wav"></audio>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -46,12 +51,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const tableBody = document.querySelector("#panelTable tbody");
-
-// Sonidos
-const audioEntrada = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/ENTRADA.mp3");
-const audioSalida  = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/SALIDA.wav");
+const entradaSound = document.getElementById("entradaSound");
+const salidaSound = document.getElementById("salidaSound");
 
 const propietariosRef = ref(db, 'propietarios');
+
+let lastEventKey = null;
 
 onValue(propietariosRef, (snapshot) => {
   tableBody.innerHTML = "";
@@ -64,6 +69,7 @@ onValue(propietariosRef, (snapshot) => {
 
     Object.keys(eventos).forEach(key => {
       allEventos.push({
+        key: key,
         lote,
         propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
         entrada: eventos[key].entrada || "",
@@ -78,45 +84,30 @@ onValue(propietariosRef, (snapshot) => {
 
   allEventos.forEach((ev, index) => {
     const tr = document.createElement("tr");
-
-    // Formatear hora:minutos (fecha) sin segundos
-    const formatTime = (timestamp) => {
-      if(!timestamp) return "";
-      const d = new Date(timestamp);
-      const h = d.getHours().toString().padStart(2,"0");
-      const m = d.getMinutes().toString().padStart(2,"0");
-      const dateStr = d.toLocaleDateString();
-      return `${h}:${m} (${dateStr})`;
-    };
-
     tr.innerHTML = `
       <td>${ev.lote}</td>
       <td>${ev.propietario}</td>
-      <td>${formatTime(ev.entrada)}</td>
-      <td>${formatTime(ev.salida)}</td>
+      <td>${ev.entrada}</td>
+      <td>${ev.salida}</td>
     `;
     tableBody.appendChild(tr);
 
-    // Resaltar último evento y reproducir sonido
-    if(index === 0){
-      if(ev.entrada && !ev.salida) { 
-        tr.style.backgroundColor = "#90ee90"; // verde suave
-        audioEntrada.play().catch(()=>{});
-      } else if(ev.salida && !ev.entrada) {
-        tr.style.backgroundColor = "#f08080"; // rojo suave
-        audioSalida.play().catch(()=>{});
+    // Resaltar último evento y reproducir sonido solo si es nuevo
+    if(index === 0 && ev.key !== lastEventKey) {
+      lastEventKey = ev.key;
+      if(ev.entrada) {
+        tr.classList.add("highlight-green");
+        entradaSound.play().catch(()=>{});
+      } else if(ev.salida) {
+        tr.classList.add("highlight-red");
+        salidaSound.play().catch(()=>{});
       }
-      setTimeout(()=>{
-        tr.classList.add("highlight");
-        tr.style.backgroundColor = "";
-      },5000);
+      setTimeout(() => tr.classList.remove("highlight-green","highlight-red"), 5000);
     }
   });
 
-  // Limitar a máximo 30 eventos
-  while(allEventos.length > 30){
-    allEventos.pop();
-  }
+  // Limitar a 30 filas
+  while(tableBody.rows.length > 30) tableBody.deleteRow(tableBody.rows.length-1);
 });
 </script>
 </body>
