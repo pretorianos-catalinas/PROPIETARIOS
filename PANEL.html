@@ -3,35 +3,69 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Catalinas Country Club</title>
+<title>Panel de Propietarios</title>
 <style>
-body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
-h1 { text-align: center; color: #333; }
-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 18px; margin-top: 20px; background: #fff; border-radius: 10px; overflow: hidden; }
-th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ccc; transition: background-color 2s ease; }
-th { background-color: #ff9900; color: #fff; }
-tr:nth-child(even) td { background-color: #f9f9f9; }
-tr td:hover { background-color: #90ee90; } /* Hover verde rápido */
-.highlight-entrada { background-color: #a0f0a0 !important; transition: background-color 5s ease; }
-.highlight-salida { background-color: #f5a0a0 !important; transition: background-color 5s ease; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  padding: 20px;
+}
+h1 {
+  text-align: center;
+  color: #333;
+}
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 18px;
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+th, td {
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding: 10px 12px;
+  text-align: left;
+}
+th {
+  background-color: #ff9900;
+  color: #fff;
+}
+tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+tr:hover {
+  background-color: #90ee90;
+  transition: background-color 0.2s;
+}
+.highlight-entrada {
+  background-color: #90ee90 !important;
+  transition: background-color 5s;
+}
+.highlight-salida {
+  background-color: #ff7f7f !important;
+  transition: background-color 5s;
+}
 </style>
 </head>
 <body>
-<h1><b>PRETORIANOS:</b> entrada y salida de propietarios</h1>
+<h1><b>PRETORIANOS:</b> Entrada y salida de propietarios</h1>
 <table id="panelTable">
   <thead>
     <tr>
       <th>#Lote</th>
       <th>Propietario(a)</th>
-      <th>Hora de Entrada</th>
-      <th>Hora de Salida</th>
+      <th>Hora</th>
+      <th>Tipo</th>
     </tr>
   </thead>
   <tbody></tbody>
 </table>
 
-<audio id="sonidoEntrada" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/ENTRADA.mp3?raw=true"></audio>
-<audio id="sonidoSalida" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/SALIDA.wav?raw=true"></audio>
+<audio id="sonidoEntrada" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/ENTRADA.mp3" preload="auto"></audio>
+<audio id="sonidoSalida" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/SALIDA.wav" preload="auto"></audio>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -50,12 +84,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const tableBody = document.querySelector("#panelTable tbody");
+
 const sonidoEntrada = document.getElementById("sonidoEntrada");
 const sonidoSalida = document.getElementById("sonidoSalida");
 
 const propietariosRef = ref(db, 'propietarios');
-
-let ultimoEventoId = null;
 
 onValue(propietariosRef, (snapshot) => {
   tableBody.innerHTML = "";
@@ -67,14 +100,26 @@ onValue(propietariosRef, (snapshot) => {
     const eventos = prop.eventos || {};
 
     Object.keys(eventos).forEach(key => {
-      allEventos.push({
-        id: key,
-        lote,
-        propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
-        entrada: eventos[key].entrada || "",
-        salida: eventos[key].salida || "",
-        timestamp: eventos[key].timestamp || Date.now()
-      });
+      const ev = eventos[key];
+      // Cada evento puede ser entrada o salida
+      if (ev.entrada) {
+        allEventos.push({
+          lote,
+          propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
+          hora: ev.entrada,
+          tipo: "Entrada",
+          timestamp: ev.timestamp || 0
+        });
+      }
+      if (ev.salida) {
+        allEventos.push({
+          lote,
+          propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
+          hora: ev.salida,
+          tipo: "Salida",
+          timestamp: ev.timestamp || 0
+        });
+      }
     });
   });
 
@@ -86,37 +131,21 @@ onValue(propietariosRef, (snapshot) => {
     tr.innerHTML = `
       <td>${ev.lote}</td>
       <td>${ev.propietario}</td>
-      <td>${ev.entrada}</td>
-      <td>${ev.salida}</td>
+      <td>${ev.hora}</td>
+      <td>${ev.tipo}</td>
     `;
-    tableBody.appendChild(tr);
+    tableBody.prepend(tr); // Aparece al principio
 
-    // Reproducir sonido y resaltar solo el último evento
-    if (index === 0 && ev.id !== ultimoEventoId) {
-      ultimoEventoId = ev.id;
-
-      if (ev.entrada && !ev.salida) {
-        tr.classList.add("highlight-entrada");
-        sonidoEntrada.play().catch(()=>{});
-      } else if (ev.salida) {
-        tr.classList.add("highlight-salida");
-        sonidoSalida.play().catch(()=>{});
-      }
-
-      setTimeout(() => { 
-        tr.classList.remove("highlight-entrada", "highlight-salida"); 
-      }, 5000); // 5 segundos
+    // Resaltar el último evento por 10s
+    if (index === 0) {
+      const clase = ev.tipo === "Entrada" ? "highlight-entrada" : "highlight-salida";
+      tr.classList.add(clase);
+      // Reproducir sonido
+      if (ev.tipo === "Entrada") sonidoEntrada.play().catch(()=>{});
+      else sonidoSalida.play().catch(()=>{});
+      setTimeout(() => { tr.classList.remove(clase); }, 10000);
     }
   });
-
-  // Limitar a 30 filas
-  if(allEventos.length > 30) {
-    for(let i=30; i<allEventos.length; i++) {
-      const propKey = allEventos[i].lote;
-      const eventoKey = allEventos[i].id;
-      // No borrar de Firebase para preservar datos, solo visualmente
-    }
-  }
 });
 </script>
 </body>
