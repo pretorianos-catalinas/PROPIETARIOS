@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro de Entrada</title>
-  <style>
-    body { font-family: Arial; background: #f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; }
-    .container { background:#fff; padding:20px; border-radius:15px; box-shadow:0 2px 5px rgba(0,0,0,0.2); text-align:center; width:300px;}
-    input { width:80%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #ccc;}
-    button { padding:10px 20px; border:none; border-radius:10px; background:#ff9900; color:#fff; cursor:pointer; font-size:16px;}
-    .mensaje { margin-top:15px; font-weight:bold; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Entrada</title>
+<style>
+  body { font-family: Arial; background: #f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; }
+  .container { background:#fff; padding:20px; border-radius:15px; box-shadow:0 2px 5px rgba(0,0,0,0.2); text-align:center; width:300px;}
+  input { width:80%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #ccc;}
+  button { padding:10px 20px; border:none; border-radius:10px; background:#ff9900; color:#fff; cursor:pointer; font-size:16px;}
+  .mensaje { margin-top:15px; font-weight:bold; }
+</style>
 </head>
 <body>
+
 <div class="container">
   <h2>Registro de Entrada</h2>
   <input type="number" id="lote" placeholder="Número de Lote" required><br>
@@ -23,7 +24,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, get, child, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, get, child, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -37,7 +38,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
 const loginBtn = document.getElementById("loginBtn");
 const mensaje = document.getElementById("mensaje");
 
@@ -55,16 +55,21 @@ loginBtn.addEventListener("click", async () => {
   if (snapshot.exists()) {
     const data = snapshot.val();
     if (data.contraseña === contraseña) {
-      const ahora = new Date();
-      const hora = ahora.getHours().toString().padStart(2,'0') + ":" + ahora.getMinutes().toString().padStart(2,'0');
-      const fecha = "(" + ahora.getDate().toString().padStart(2,'0') + "/" + (ahora.getMonth()+1).toString().padStart(2,'0') + "/" + ahora.getFullYear() + ")";
-      const evento = { entrada: hora + " " + fecha, salida: "", timestamp: ahora.getTime() };
+      const now = new Date();
+      const hora = now.getHours().toString().padStart(2,'0') + ":" + now.getMinutes().toString().padStart(2,'0');
+      const fecha = now.getDate().toString().padStart(2,'0') + "/" + (now.getMonth()+1).toString().padStart(2,'0') + "/" + now.getFullYear();
+      const timestamp = now.getTime();
 
-      await push(ref(db, `propietarios/${lote}/eventos`), evento);
-      mensaje.textContent = `Entrada registrada: ${hora} ${fecha}`;
+      await push(ref(db, `propietarios/${lote}/eventos`), {
+        entrada: `${hora} (${fecha})`,
+        salida: "",
+        timestamp
+      });
+
+      mensaje.textContent = `Entrada registrada: ${hora} (${fecha})`;
       mensaje.style.color = "green";
 
-      setTimeout(()=>{ window.location.href = "https://www.google.com.ar"; }, 1000);
+      setTimeout(() => window.location.href = "https://www.google.com.ar/", 1000);
 
     } else {
       mensaje.textContent = "Contraseña incorrecta";
@@ -76,5 +81,6 @@ loginBtn.addEventListener("click", async () => {
   }
 });
 </script>
+
 </body>
 </html>
