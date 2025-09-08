@@ -7,17 +7,18 @@
 <style>
 body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
 h1 { text-align: center; color: #333; }
-table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; border-radius:10px; overflow:hidden; }
-th, td { border: 1px solid #ccc; padding: 8px; text-align: left; transition: background-color 1s; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 18px; margin-top: 20px; background: #fff; border-radius: 10px; overflow: hidden; }
+th, td { border-bottom: 1px solid #ccc; border-right: 1px solid #ccc; padding: 10px; text-align: left; }
+th:last-child, td:last-child { border-right: none; }
 th { background-color: #ff9900; color: #fff; }
-tr:nth-child(even) { background-color: #f9f9f9; }
-tr td:hover { background-color: #fff8c0; } /* hover amarillo en celdas */
+tr:last-child td { border-bottom: none; }
+tr:hover td { background-color: #fff3b0; transition: background-color 1s; }
+.highlight-green { background-color: #90ee90 !important; transition: background-color 5s; }
+.highlight-red { background-color: #f7a3a3 !important; transition: background-color 5s; }
 </style>
 </head>
 <body>
-
-<h1>Panel de Propietarios</h1>
-<button id="activarSonidos">Activar sonidos</button>
+<h1><b>PRETORIANOS:</b> Entrada y Salida de Propietarios</h1>
 <table id="panelTable">
   <thead>
     <tr>
@@ -29,6 +30,9 @@ tr td:hover { background-color: #fff8c0; } /* hover amarillo en celdas */
   </thead>
   <tbody></tbody>
 </table>
+
+<audio id="entradaSound" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/ENTRADA.mp3"></audio>
+<audio id="salidaSound" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/SALIDA.wav"></audio>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -47,24 +51,15 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const tableBody = document.querySelector("#panelTable tbody");
-
-let entradaAudio = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/ENTRADA.mp3");
-let salidaAudio = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/SALIDA.wav");
-let sonidosActivados = false;
-
-document.getElementById("activarSonidos").addEventListener("click", () => {
-  sonidosActivados = true;
-  // reproducir un mini sonido para desbloquear autoplay
-  entradaAudio.play().catch(()=>{});
-  salidaAudio.play().catch(()=>{});
-  alert("Sonidos activados para futuros eventos");
-});
+const entradaSound = document.getElementById("entradaSound");
+const salidaSound = document.getElementById("salidaSound");
 
 const propietariosRef = ref(db, 'propietarios');
 
 const formatTime = (ts) => {
   if(!ts) return "";
   const d = new Date(ts);
+  if(isNaN(d.getTime())) return "";
   const h = String(d.getHours()).padStart(2,'0');
   const m = String(d.getMinutes()).padStart(2,'0');
   const date = d.toLocaleDateString();
@@ -84,8 +79,8 @@ onValue(propietariosRef, (snapshot) => {
       allEventos.push({
         lote,
         propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
-        entrada: eventos[key].entrada || null,
-        salida: eventos[key].salida || null,
+        entrada: eventos[key].entrada || "",
+        salida: eventos[key].salida || "",
         timestamp: eventos[key].timestamp || 0
       });
     });
@@ -94,12 +89,7 @@ onValue(propietariosRef, (snapshot) => {
   // Ordenar de más reciente a más antiguo
   allEventos.sort((a,b) => b.timestamp - a.timestamp);
 
-  // Mantener máximo 30 eventos
-  if(allEventos.length > 30){
-    allEventos = allEventos.slice(0,30);
-  }
-
-  allEventos.forEach((ev,index) => {
+  allEventos.forEach((ev, index) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ev.lote}</td>
@@ -109,21 +99,24 @@ onValue(propietariosRef, (snapshot) => {
     `;
     tableBody.appendChild(tr);
 
-    // Último evento resaltado con desvanecimiento
-    if(index===0){
-      let esEntrada = ev.entrada && (!ev.salida || ev.entrada>ev.salida);
-      tr.style.backgroundColor = esEntrada ? "#90ee90" : "#ff9999"; // verde o rojo
-      if(sonidosActivados){
-        if(esEntrada) entradaAudio.play().catch(()=>{});
-        else salidaAudio.play().catch(()=>{});
-      }
-      // desvanecimiento suave en 5s
-      tr.style.transition = "background-color 5s";
-      setTimeout(()=>{
-        tr.style.backgroundColor = "";
-      },50); // pequeña demora para aplicar transition
+    // Reproducir sonido y resaltar solo la fila más reciente
+    if(index === 0) {
+      if(ev.entrada) tr.classList.add("highlight-green");
+      else if(ev.salida) tr.classList.add("highlight-red");
+
+      // Sonido
+      if(ev.entrada) entradaSound.play().catch(()=>{});
+      else if(ev.salida) salidaSound.play().catch(()=>{});
+
+      // Quitar clase después de 5 segundos
+      setTimeout(() => {
+        tr.classList.remove("highlight-green", "highlight-red");
+      }, 5000);
     }
   });
+
+  // Limitar a 30 filas, eliminar las más antiguas
+  while(tableBody.rows.length > 30) tableBody.deleteRow(tableBody.rows.length-1);
 });
 </script>
 </body>
