@@ -7,13 +7,12 @@
 <style>
 body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
 h1 { text-align: center; color: #333; }
-table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; border-radius: 10px; overflow: hidden; }
-th, td { border-bottom: 1px solid rgba(0,0,0,0.1); border-right: 1px solid rgba(0,0,0,0.05); padding: 8px; text-align: left; }
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 18px; margin-top: 20px; background: #fff; border-radius: 10px; overflow: hidden; }
+th, td { border-bottom: 1px solid #ccc; padding: 10px; text-align: left; }
 th { background-color: #ff9900; color: #fff; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background-color: #fff176; transition: background-color 1s; }
-.highlight-entrada { background-color: #90ee90 !important; transition: background-color 3s; }
-.highlight-salida { background-color: #f08080 !important; transition: background-color 3s; }
+tr:hover td { background-color: #fffacd; transition: background-color 1s; }
+.highlight-entrada { background-color: #90ee90 !important; transition: background-color 5s; }
+.highlight-salida { background-color: #f4a6a6 !important; transition: background-color 5s; }
 </style>
 </head>
 <body>
@@ -32,7 +31,7 @@ tr:hover td { background-color: #fff176; transition: background-color 1s; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -48,8 +47,8 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const tableBody = document.querySelector("#panelTable tbody");
 
-const sonidoEntrada = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/ENTRADA.mp3?raw=true");
-const sonidoSalida = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/SALIDA.wav?raw=true");
+const sonidoEntrada = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/ENTRADA.mp3");
+const sonidoSalida  = new Audio("https://github.com/pretorianos-catalinas/PROPIETARIOS/raw/refs/heads/main/SALIDA.wav");
 
 const propietariosRef = ref(db, 'propietarios');
 
@@ -63,18 +62,12 @@ onValue(propietariosRef, (snapshot) => {
     const eventos = prop.eventos || {};
 
     Object.keys(eventos).forEach(key => {
-      const ev = eventos[key];
-      // Formatear hora:minutos (dd/mm/yyyy)
-      let fecha = new Date(ev.timestamp);
-      let horaMin = fecha.getHours().toString().padStart(2,'0') + ':' + fecha.getMinutes().toString().padStart(2,'0');
-      let fechaStr = fecha.getDate().toString().padStart(2,'0') + '/' + (fecha.getMonth()+1).toString().padStart(2,'0') + '/' + fecha.getFullYear();
       allEventos.push({
         lote,
         propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
-        entrada: ev.entrada ? horaMin + ' (' + fechaStr + ')' : "",
-        salida: ev.salida ? horaMin + ' (' + fechaStr + ')' : "",
-        tipo: ev.entrada ? "Entrada" : "Salida",
-        timestamp: ev.timestamp
+        entrada: eventos[key].entrada || "",
+        salida: eventos[key].salida || "",
+        timestamp: eventos[key].timestamp || 0
       });
     });
   });
@@ -82,30 +75,43 @@ onValue(propietariosRef, (snapshot) => {
   // Ordenar de más reciente a más antiguo
   allEventos.sort((a,b) => b.timestamp - a.timestamp);
 
-  // Limitar a 30 filas
+  // Limitar a 30 eventos
   if(allEventos.length > 30) allEventos = allEventos.slice(0,30);
 
-  allEventos.forEach((ev,index) => {
+  allEventos.forEach((ev, index) => {
     const tr = document.createElement("tr");
+
+    // Formatear hora y fecha sin segundos
+    const formatTime = (ts) => {
+      if(!ts) return "";
+      const d = new Date(ts);
+      const h = String(d.getHours()).padStart(2,'0');
+      const m = String(d.getMinutes()).padStart(2,'0');
+      const date = d.toLocaleDateString();
+      return `${h}:${m} (${date})`;
+    };
+
     tr.innerHTML = `
       <td>${ev.lote}</td>
       <td>${ev.propietario}</td>
-      <td>${ev.entrada}</td>
-      <td>${ev.salida}</td>
+      <td>${formatTime(ev.entrada)}</td>
+      <td>${formatTime(ev.salida)}</td>
     `;
     tableBody.appendChild(tr);
 
-    // Resaltar solo el último evento durante 10 segundos
+    // Resaltar último evento con color según tipo y reproducir sonido
     if(index === 0){
-      const clase = ev.tipo === "Entrada" ? "highlight-entrada" : "highlight-salida";
-      tr.classList.add(clase);
-      if(ev.tipo === "Entrada") sonidoEntrada.play().catch(()=>{});
-      else sonidoSalida.play().catch(()=>{});
-      setTimeout(()=>{tr.classList.remove(clase)},5000);
+      if(ev.entrada) { 
+        tr.classList.add("highlight-entrada"); 
+        sonidoEntrada.play().catch(e=>console.log(e));
+      } else if(ev.salida){ 
+        tr.classList.add("highlight-salida"); 
+        sonidoSalida.play().catch(e=>console.log(e));
+      }
+      setTimeout(() => { tr.classList.remove("highlight-entrada"); tr.classList.remove("highlight-salida"); }, 5000);
     }
   });
 });
 </script>
 </body>
 </html>
-
