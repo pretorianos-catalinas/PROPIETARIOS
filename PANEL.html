@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel de Propietarios</title>
-<style>
-body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
-h1 { text-align: center; color: #333; }
-table { width:100%; border-collapse: collapse; font-size:18px; margin-top:20px; background:#fff; }
-th, td { border:2px solid #000; padding:8px; text-align:left; }
-th { background-color:#ff9900; color:#fff; }
-tr:nth-child(even) { background-color:#f9f9f9; }
-tr.resaltado { background-color: #90ee90; transition: background 2s; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Propietarios</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
+    h1 { text-align: center; color: #333; }
+    table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; }
+    th, td { border: 2px solid #000; padding: 8px; text-align: left; }
+    th { background-color: #ff9900; color: #fff; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    .resaltado { background-color: #b6f1b0 !important; transition: background-color 1s; }
+  </style>
 </head>
 <body>
 
@@ -27,12 +27,14 @@ tr.resaltado { background-color: #90ee90; transition: background 2s; }
       <th>Hora de Salida</th>
     </tr>
   </thead>
-  <tbody></tbody>
+  <tbody>
+    <!-- Filas dinámicas -->
+  </tbody>
 </table>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, onChildAdded, get, child, push } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -48,46 +50,61 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const panelTable = document.getElementById("panelTable").querySelector("tbody");
 
-onValue(ref(db, 'propietarios'), (snapshot) => {
-  const rows = [];
-  snapshot.forEach((childSnap) => {
-    const prop = childSnap.val();
-    const eventos = prop.eventos || [];
-    eventos.forEach(evento => {
-      rows.push({
-        lote: prop.lote,
-        propietario: prop.nombre,
-        entrada: evento.entrada || "",
-        salida: evento.salida || ""
-      });
+// Escuchar cambios en tiempo real y añadir nuevas filas
+const propietariosRef = ref(db, 'propietarios');
+
+const mostrarEventos = (prop, lote) => {
+  if (!prop.eventos) return [];
+  return Object.values(prop.eventos).map(e => ({
+    lote,
+    propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
+    entrada: e.entrada || "",
+    salida: e.salida || "",
+    timestamp: e.timestamp || 0
+  }));
+};
+
+const actualizarTabla = () => {
+  get(propietariosRef).then(snapshot => {
+    let eventosTotales = [];
+    snapshot.forEach(childSnap => {
+      const prop = childSnap.val();
+      const lote = childSnap.key;
+      eventosTotales = eventosTotales.concat(mostrarEventos(prop, lote));
+    });
+
+    // Ordenar eventos por timestamp descendente
+    eventosTotales.sort((a, b) => b.timestamp - a.timestamp);
+
+    panelTable.innerHTML = "";
+    eventosTotales.forEach((evento, index) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${evento.lote}</td>
+        <td>${evento.propietario}</td>
+        <td>${evento.entrada}</td>
+        <td>${evento.salida}</td>
+      `;
+      panelTable.appendChild(tr);
+
+      // Resaltar solo el último evento
+      if (index === 0) {
+        tr.classList.add("resaltado");
+        setTimeout(() => {
+          tr.classList.remove("resaltado");
+        }, 10000);
+      }
     });
   });
+};
 
-  // Ordenar por el último evento primero (más reciente arriba)
-  rows.sort((a,b) => {
-    const fechaA = a.entrada ? new Date(a.entrada.split('(')[1].replace(')','')) : new Date(0);
-    const fechaB = b.entrada ? new Date(b.entrada.split('(')[1].replace(')','')) : new Date(0);
-    return fechaB - fechaA;
-  });
-
-  panelTable.innerHTML = "";
-  rows.forEach((row, index) => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${row.lote}</td>
-      <td>${row.propietario}</td>
-      <td>${row.entrada}</td>
-      <td>${row.salida}</td>
-    `;
-    panelTable.appendChild(tr);
-
-    // Resaltar solo el último evento durante 10s
-    if(index === 0) {
-      tr.classList.add("resaltado");
-      setTimeout(() => { tr.classList.remove("resaltado"); }, 10000);
-    }
-  });
+// Actualizar tabla cada vez que se agrega un evento
+onChildAdded(propietariosRef, snapshot => {
+  actualizarTabla();
 });
+
+// Inicializar tabla al cargar
+actualizarTabla();
 </script>
 </body>
 </html>
