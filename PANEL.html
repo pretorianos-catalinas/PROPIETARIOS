@@ -1,48 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Propietarios</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 16px;
-      margin-top: 20px;
-      background: #fff;
-    }
-    th, td {
-      border: 1px solid #000;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #ff9900;
-      color: #fff;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
-    /* Colores de transición */
-    .highlight {
-      background-color: #c8f7c5;
-      transition: background-color 2s ease;
-    }
-    .normal {
-      background-color: #f9f9f9;
-      transition: background-color 2s ease;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Propietarios</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
+  h1 { text-align: center; color: #333; }
+  table { width: 100%; border-collapse: collapse; font-size: 16px; margin-top: 20px; background: #fff; }
+  th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+  th { background-color: #ff9900; color: #fff; }
+  tr:nth-child(even) { background-color: #f9f9f9; }
+  .highlight { background-color: #a8e6a1; transition: background-color 2s ease; }
+  .normal { background-color: #f9f9f9; transition: background-color 2s ease; }
+</style>
 </head>
 <body>
 
@@ -58,9 +29,7 @@
       <th>Hora de Salida</th>
     </tr>
   </thead>
-  <tbody>
-    <!-- Filas dinámicas -->
-  </tbody>
+  <tbody></tbody>
 </table>
 
 <script type="module">
@@ -79,11 +48,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const tbody = document.getElementById("panelTable").querySelector("tbody");
+const tbody = document.querySelector("#panelTable tbody");
+let lastEventKey = null;
 
-let lastEventKey = null; // Para identificar la fila más reciente
-
-onValue(ref(db, 'propietarios'), (snapshot) => {
+onValue(ref(db, 'propietarios'), snapshot => {
   let filas = [];
 
   snapshot.forEach(propSnap => {
@@ -91,7 +59,7 @@ onValue(ref(db, 'propietarios'), (snapshot) => {
     const eventos = prop.eventos || {};
     for (let key in eventos) {
       filas.push({
-        key: key,
+        key,
         propietario: prop.nombre,
         lote: prop.lote,
         contraseña: prop.contraseña,
@@ -102,25 +70,17 @@ onValue(ref(db, 'propietarios'), (snapshot) => {
     }
   });
 
-  // Ordenar por timestamp descendente
   filas.sort((a,b) => b.timestamp - a.timestamp);
-
-  // Limpiar tabla
   tbody.innerHTML = "";
 
-  filas.forEach((fila, index) => {
+  filas.forEach((fila,index) => {
     const tr = document.createElement("tr");
     tr.dataset.key = fila.key;
 
-    // Si es el evento más reciente y es diferente al anterior, agregar highlight
-    if (index === 0 && fila.key !== lastEventKey) {
+    if(index===0 && fila.key !== lastEventKey){
       tr.classList.add("highlight");
       lastEventKey = fila.key;
-      // Quitar el highlight después de 10 segundos
-      setTimeout(() => {
-        tr.classList.remove("highlight");
-        tr.classList.add("normal");
-      }, 10000);
+      setTimeout(()=>{tr.classList.remove("highlight"); tr.classList.add("normal");},10000);
     } else {
       tr.classList.add("normal");
     }
