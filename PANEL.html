@@ -56,15 +56,7 @@ const salidaSound = document.getElementById("salidaSound");
 
 const propietariosRef = ref(db, 'propietarios');
 
-const formatTime = (ts) => {
-  if(!ts) return "";
-  const d = new Date(ts);
-  if(isNaN(d.getTime())) return "";
-  const h = String(d.getHours()).padStart(2,'0');
-  const m = String(d.getMinutes()).padStart(2,'0');
-  const date = d.toLocaleDateString();
-  return `${h}:${m} (${date})`;
-};
+let lastEventKey = null;
 
 onValue(propietariosRef, (snapshot) => {
   tableBody.innerHTML = "";
@@ -77,6 +69,7 @@ onValue(propietariosRef, (snapshot) => {
 
     Object.keys(eventos).forEach(key => {
       allEventos.push({
+        key: key,
         lote,
         propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
         entrada: eventos[key].entrada || "",
@@ -94,28 +87,26 @@ onValue(propietariosRef, (snapshot) => {
     tr.innerHTML = `
       <td>${ev.lote}</td>
       <td>${ev.propietario}</td>
-      <td>${formatTime(ev.entrada)}</td>
-      <td>${formatTime(ev.salida)}</td>
+      <td>${ev.entrada}</td>
+      <td>${ev.salida}</td>
     `;
     tableBody.appendChild(tr);
 
-    // Reproducir sonido y resaltar solo la fila más reciente
-    if(index === 0) {
-      if(ev.entrada) tr.classList.add("highlight-green");
-      else if(ev.salida) tr.classList.add("highlight-red");
-
-      // Sonido
-      if(ev.entrada) entradaSound.play().catch(()=>{});
-      else if(ev.salida) salidaSound.play().catch(()=>{});
-
-      // Quitar clase después de 5 segundos
-      setTimeout(() => {
-        tr.classList.remove("highlight-green", "highlight-red");
-      }, 5000);
+    // Resaltar último evento y reproducir sonido solo si es nuevo
+    if(index === 0 && ev.key !== lastEventKey) {
+      lastEventKey = ev.key;
+      if(ev.entrada) {
+        tr.classList.add("highlight-green");
+        entradaSound.play().catch(()=>{});
+      } else if(ev.salida) {
+        tr.classList.add("highlight-red");
+        salidaSound.play().catch(()=>{});
+      }
+      setTimeout(() => tr.classList.remove("highlight-green","highlight-red"), 5000);
     }
   });
 
-  // Limitar a 30 filas, eliminar las más antiguas
+  // Limitar a 30 filas
   while(tableBody.rows.length > 30) tableBody.deleteRow(tableBody.rows.length-1);
 });
 </script>
