@@ -112,10 +112,17 @@ const actualizarTabla = () => {
 
     snapshot.forEach((childSnap) => {
       const prop = childSnap.val();
-      const eventos = prop.eventos || [];
+      const eventosObj = prop.eventos || {};
 
-      eventos.forEach((evento) => {
-        if (contador >= 50) return; // Limitar a 50 filas
+      // Convertir objetos de eventos a array y ordenar por fecha descendente
+      const eventosArray = Object.values(eventosObj).sort((a, b) => {
+        const fechaA = new Date(a.entrada || a.salida || 0).getTime();
+        const fechaB = new Date(b.entrada || b.salida || 0).getTime();
+        return fechaB - fechaA; // Descendente
+      });
+
+      eventosArray.forEach((evento) => {
+        if (contador >= 50) return;
         const tr = document.createElement("tr");
 
         tr.innerHTML = `
@@ -158,7 +165,6 @@ form.addEventListener('submit', async (e) => {
   const propietarioRef = ref(db, `propietarios/${lote}`);
   const snapshot = await get(propietarioRef);
 
-  // Si el propietario no existe, crear nodo principal
   if (!snapshot.exists()) {
     await set(propietarioRef, {
       lote,
@@ -172,11 +178,9 @@ form.addEventListener('submit', async (e) => {
     });
   }
 
-  // Agregar un nuevo evento
   const eventosRef = ref(db, `propietarios/${lote}/eventos`);
   await push(eventosRef, { entrada, salida });
 
-  // Limpiar formulario
   form.reset();
 });
 </script>
