@@ -7,11 +7,11 @@
 <style>
 body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
 h1 { text-align: center; color: #333; }
-table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; border-radius:10px; overflow:hidden;}
+table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; border-radius:10px; overflow:hidden; }
 th, td { border: 1px solid #ccc; padding: 8px; text-align: left; transition: background-color 1s; }
 th { background-color: #ff9900; color: #fff; }
 tr:nth-child(even) { background-color: #f9f9f9; }
-tr:hover td { background-color: #fff8c0; } /* Hover amarillo */
+tr td:hover { background-color: #fff8c0; } /* hover amarillo en celdas */
 </style>
 </head>
 <body>
@@ -32,7 +32,7 @@ tr:hover td { background-color: #fff8c0; } /* Hover amarillo */
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -54,7 +54,8 @@ let sonidosActivados = false;
 
 document.getElementById("activarSonidos").addEventListener("click", () => {
   sonidosActivados = true;
-  entradaAudio.play().catch(()=>{}); // desbloquea autoplay
+  // reproducir un mini sonido para desbloquear autoplay
+  entradaAudio.play().catch(()=>{});
   salidaAudio.play().catch(()=>{});
   alert("Sonidos activados para futuros eventos");
 });
@@ -95,10 +96,7 @@ onValue(propietariosRef, (snapshot) => {
 
   // Mantener máximo 30 eventos
   if(allEventos.length > 30){
-    const extra = allEventos.length - 30;
-    for(let i=allEventos.length-1; i>=allEventos.length-extra; i--){
-      allEventos.pop();
-    }
+    allEventos = allEventos.slice(0,30);
   }
 
   allEventos.forEach((ev,index) => {
@@ -111,7 +109,7 @@ onValue(propietariosRef, (snapshot) => {
     `;
     tableBody.appendChild(tr);
 
-    // Último evento resaltado
+    // Último evento resaltado con desvanecimiento
     if(index===0){
       let esEntrada = ev.entrada && (!ev.salida || ev.entrada>ev.salida);
       tr.style.backgroundColor = esEntrada ? "#90ee90" : "#ff9999"; // verde o rojo
@@ -119,9 +117,11 @@ onValue(propietariosRef, (snapshot) => {
         if(esEntrada) entradaAudio.play().catch(()=>{});
         else salidaAudio.play().catch(()=>{});
       }
+      // desvanecimiento suave en 5s
+      tr.style.transition = "background-color 5s";
       setTimeout(()=>{
         tr.style.backgroundColor = "";
-      },5000); // transición 5s
+      },50); // pequeña demora para aplicar transition
     }
   });
 });
