@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login Salida</title>
+  <style>
+    body { font-family: Arial; background: #f2f2f2; display:flex; justify-content:center; align-items:center; height:100vh; }
+    .container { background:#fff; padding:20px; border-radius:15px; box-shadow:0 2px 5px rgba(0,0,0,0.2); text-align:center; width:300px;}
+    input { width:80%; padding:10px; margin:10px 0; border-radius:8px; border:1px solid #ccc;}
+    button { padding:10px 20px; border:none; border-radius:10px; background:#ff9900; color:#fff; cursor:pointer; font-size:16px;}
+    .mensaje { margin-top:15px; font-weight:bold; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Registro de Salida</h2>
+  <input type="number" id="lote" placeholder="Número de Lote" required><br>
+  <input type="text" id="contraseña" placeholder="Contraseña" required><br>
+  <button id="logoutBtn">Registrar Salida</button>
+  <div class="mensaje" id="mensaje"></div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+  import { getDatabase, ref, get, child, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
+    authDomain: "propietarios-catalinas-c-8b026.firebaseapp.com",
+    databaseURL: "https://propietarios-catalinas-c-8b026-default-rtdb.firebaseio.com",
+    projectId: "propietarios-catalinas-c-8b026",
+    storageBucket: "propietarios-catalinas-c-8b026.firebasestorage.app",
+    messagingSenderId: "10002796108",
+    appId: "1:10002796108:web:8ce15b43b0662ef887eee9"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  const mensaje = document.getElementById("mensaje");
+
+  logoutBtn.addEventListener("click", async () => {
+    const lote = document.getElementById("lote").value.trim();
+    const contraseña = document.getElementById("contraseña").value.trim();
+
+    if (!lote || !contraseña) {
+      mensaje.textContent = "Completa todos los campos";
+      mensaje.style.color = "red";
+      return;
+    }
+
+    const snapshot = await get(child(ref(db), `propietarios/${lote}`));
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      if (data.contraseña === contraseña) {
+        const horaActual = new Date().toLocaleString();
+        update(ref(db, `propietarios/${lote}`), { salida: horaActual })
+          .then(() => {
+            mensaje.textContent = `Salida registrada: ${horaActual}`;
+            mensaje.style.color = "green";
+          })
+          .catch((err) => {
+            mensaje.textContent = "Error al registrar salida";
+            mensaje.style.color = "red";
+          });
+      } else {
+        mensaje.textContent = "Contraseña incorrecta";
+        mensaje.style.color = "red";
+      }
+    } else {
+      mensaje.textContent = "Lote no encontrado";
+      mensaje.style.color = "red";
+    }
+  });
+</script>
+</body>
+</html>
