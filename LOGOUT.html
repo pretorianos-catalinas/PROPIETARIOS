@@ -23,7 +23,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-  import { getDatabase, ref, get, child, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+  import { getDatabase, ref, get, child, push, update } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -51,20 +51,39 @@
       return;
     }
 
-    const snapshot = await get(child(ref(db), `propietarios/${lote}`));
+    const propietarioRef = ref(db, `propietarios/${lote}`);
+    const snapshot = await get(propietarioRef);
+
     if (snapshot.exists()) {
       const data = snapshot.val();
       if (data.contraseña === contraseña) {
         const horaActual = new Date().toLocaleString();
-        update(ref(db, `propietarios/${lote}`), { salida: horaActual })
-          .then(() => {
-            mensaje.textContent = `Salida registrada: ${horaActual}`;
-            mensaje.style.color = "green";
-          })
-          .catch((err) => {
-            mensaje.textContent = "Error al registrar salida";
-            mensaje.style.color = "red";
-          });
+
+        // Tomar el último evento sin salida registrada
+        const eventosRef = ref(db, `propietarios/${lote}/eventos`);
+        const eventosSnapshot = await get(eventosRef);
+        let actualizado = false;
+
+        if (eventosSnapshot.exists()) {
+          const eventos = eventosSnapshot.val();
+          for (let key in eventos) {
+            if (!eventos[key].salida) {
+              // Actualizar la salida del evento pendiente
+              await update(ref(db, `propietarios/${lote}/eventos/${key}`), { salida: horaActual });
+              actualizado = true;
+              break;
+            }
+          }
+        }
+
+        // Si no hay evento pendiente, crear un nuevo evento solo con salida
+        if (!actualizado) {
+          await push(eventosRef, { entrada: "", salida: horaActual });
+        }
+
+        mensaje.textContent = `Salida registrada: ${horaActual}`;
+        mensaje.style.color = "green";
+
       } else {
         mensaje.textContent = "Contraseña incorrecta";
         mensaje.style.color = "red";
