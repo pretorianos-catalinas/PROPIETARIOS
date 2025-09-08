@@ -3,36 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel de Propietarios</title>
+<title>Catalinas Country Club</title>
 <style>
 body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
 h1 { text-align: center; color: #333; }
-table { 
-  width: 100%; 
-  border-collapse: separate; 
-  border-spacing: 0; 
-  font-size: 18px; 
-  margin-top: 20px; 
-  background: #fff; 
-  border-radius: 10px; 
-  overflow: hidden;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.1);
-}
-th, td { 
-  padding: 10px; 
-  text-align: left; 
-  border-bottom: 1px solid #ddd; 
-  transition: background-color 5s ease;
-}
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 18px; margin-top: 20px; background: #fff; border-radius: 10px; overflow: hidden; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ccc; transition: background-color 2s ease; }
 th { background-color: #ff9900; color: #fff; }
 tr:nth-child(even) td { background-color: #f9f9f9; }
-tr:hover td { background-color: #90ee90; } /* Hover consistente en todas las celdas */
-.highlight-entrada td { background-color: #90ee90; } /* verde para entrada */
-.highlight-salida td { background-color: #ff7f7f; } /* rojo para salida */
+tr td:hover { background-color: #90ee90; } /* Hover verde rápido */
+.highlight-entrada { background-color: #a0f0a0 !important; transition: background-color 5s ease; }
+.highlight-salida { background-color: #f5a0a0 !important; transition: background-color 5s ease; }
 </style>
 </head>
 <body>
-<h1><b>PRETORIANOS:</b> Entrada y salida de propietarios</h1>
+<h1><b>PRETORIANOS:</b> entrada y salida de propietarios</h1>
 <table id="panelTable">
   <thead>
     <tr>
@@ -45,9 +30,12 @@ tr:hover td { background-color: #90ee90; } /* Hover consistente en todas las cel
   <tbody></tbody>
 </table>
 
+<audio id="sonidoEntrada" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/ENTRADA.mp3?raw=true"></audio>
+<audio id="sonidoSalida" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/SALIDA.wav?raw=true"></audio>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -62,11 +50,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const tableBody = document.querySelector("#panelTable tbody");
-
-const entradaSound = new Audio("https://raw.githubusercontent.com/pretorianos-catalinas/PROPIETARIOS/main/ENTRADA.mp3");
-const salidaSound = new Audio("https://raw.githubusercontent.com/pretorianos-catalinas/PROPIETARIOS/main/SALIDA.wav");
+const sonidoEntrada = document.getElementById("sonidoEntrada");
+const sonidoSalida = document.getElementById("sonidoSalida");
 
 const propietariosRef = ref(db, 'propietarios');
+
+let ultimoEventoId = null;
 
 onValue(propietariosRef, (snapshot) => {
   tableBody.innerHTML = "";
@@ -79,20 +68,18 @@ onValue(propietariosRef, (snapshot) => {
 
     Object.keys(eventos).forEach(key => {
       allEventos.push({
+        id: key,
         lote,
         propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
         entrada: eventos[key].entrada || "",
         salida: eventos[key].salida || "",
-        timestamp: eventos[key].timestamp || 0
+        timestamp: eventos[key].timestamp || Date.now()
       });
     });
   });
 
   // Ordenar de más reciente a más antiguo
   allEventos.sort((a,b) => b.timestamp - a.timestamp);
-
-  // Limitar máximo 30 eventos
-  if(allEventos.length > 30) allEventos = allEventos.slice(0,30);
 
   allEventos.forEach((ev, index) => {
     const tr = document.createElement("tr");
@@ -104,22 +91,32 @@ onValue(propietariosRef, (snapshot) => {
     `;
     tableBody.appendChild(tr);
 
-    if(index === 0){
-      // Determinar si el último evento fue entrada o salida
-      if(ev.salida === "" || ev.timestamp === 0) tr.classList.add("highlight-entrada");
-      else tr.classList.add("highlight-salida");
+    // Reproducir sonido y resaltar solo el último evento
+    if (index === 0 && ev.id !== ultimoEventoId) {
+      ultimoEventoId = ev.id;
 
-      // Reproducir sonido según evento
-      if(ev.salida === "" || ev.timestamp === 0) entradaSound.play().catch(()=>{});
-      else salidaSound.play().catch(()=>{});
+      if (ev.entrada && !ev.salida) {
+        tr.classList.add("highlight-entrada");
+        sonidoEntrada.play().catch(()=>{});
+      } else if (ev.salida) {
+        tr.classList.add("highlight-salida");
+        sonidoSalida.play().catch(()=>{});
+      }
 
-      // Quitar resaltado suavemente después de 5 segundos
-      setTimeout(()=>{
-        tr.classList.remove("highlight-entrada");
-        tr.classList.remove("highlight-salida");
-      },5000);
+      setTimeout(() => { 
+        tr.classList.remove("highlight-entrada", "highlight-salida"); 
+      }, 5000); // 5 segundos
     }
   });
+
+  // Limitar a 30 filas
+  if(allEventos.length > 30) {
+    for(let i=30; i<allEventos.length; i++) {
+      const propKey = allEventos[i].lote;
+      const eventoKey = allEventos[i].id;
+      // No borrar de Firebase para preservar datos, solo visualmente
+    }
+  }
 });
 </script>
 </body>
