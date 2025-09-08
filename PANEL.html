@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel de Propietarios</title>
+<title>Panel de Propietarios - Premium</title>
 <style>
 body { 
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #f2f2f2; 
+  background: #eef2f7; 
   padding: 20px; 
   margin: 0;
 }
@@ -16,9 +16,11 @@ h1 {
   text-align: center; 
   color: #333; 
   margin-bottom: 20px;
+  font-size: 28px;
+  letter-spacing: 1px;
 }
 
-/* Tabla moderna */
+/* Tabla moderna premium */
 table { 
   width: 100%; 
   border-collapse: separate; 
@@ -26,16 +28,17 @@ table {
   font-size: 18px; 
   margin-top: 20px; 
   background: #fff; 
-  border-radius: 12px; 
+  border-radius: 14px; 
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
 }
 
 /* Encabezado con degradado */
 th { 
   background: linear-gradient(135deg, #ff9900, #ffb84d); 
   color: #fff; 
-  padding: 12px 10px;
+  padding: 14px 10px;
   text-align: left;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -45,39 +48,40 @@ th {
 td { 
   padding: 12px 10px; 
   text-align: left; 
-  border-bottom: 1px solid #e0e0e0; /* Líneas más suaves */
-  transition: background-color 0.3s ease;
+  border-bottom: 1px solid #e0e0e0; 
+  transition: background-color 0.3s ease, transform 0.3s ease;
 }
 
-/* Filas pares */
-tr:nth-child(even) { 
-  background-color: #f9f9f9; 
+/* Filas pares con degradado sutil */
+tbody tr:nth-child(even) { 
+  background: linear-gradient(to right, #f9f9f9, #f1f3f6);
 }
 
-/* Resaltado temporal de último evento */
+/* Hover sobre filas */
+tbody tr:hover {
+  background-color: #90ee90 !important; 
+  transform: scale(1.01);
+  cursor: pointer;
+}
+
+/* Resaltado temporal último evento */
 .highlight { 
   background-color: #90ee90 !important; 
-  transition: background-color 5s ease; /* Fade gradual */
-}
-
-/* Hover sobre cualquier fila */
-tbody tr:hover {
-  background-color: #90ee90; 
-  cursor: pointer;
+  transition: background-color 5s ease;
 }
 
 /* Esquinas redondeadas */
 table thead tr:first-child th:first-child {
-  border-top-left-radius: 12px;
+  border-top-left-radius: 14px;
 }
 table thead tr:first-child th:last-child {
-  border-top-right-radius: 12px;
+  border-top-right-radius: 14px;
 }
 table tbody tr:last-child td:first-child {
-  border-bottom-left-radius: 12px;
+  border-bottom-left-radius: 14px;
 }
 table tbody tr:last-child td:last-child {
-  border-bottom-right-radius: 12px;
+  border-bottom-right-radius: 14px;
 }
 
 /* Scroll interno si hay muchas filas */
@@ -90,6 +94,15 @@ thead, tbody tr {
   display: table;
   width: 100%;
   table-layout: fixed;
+}
+
+/* Animación entrada de fila */
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(20px);}
+  100% { opacity: 1; transform: translateY(0);}
+}
+tbody tr {
+  animation: fadeInUp 0.5s ease forwards;
 }
 </style>
 </head>
