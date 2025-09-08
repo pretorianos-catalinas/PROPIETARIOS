@@ -5,106 +5,70 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel de Propietarios</title>
 <style>
-body { 
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #eef2f7; 
-  padding: 20px; 
-  margin: 0;
+body {
+  font-family: Arial, sans-serif;
+  background: #f2f2f2;
+  padding: 20px;
 }
-h1 { 
-  text-align: center; 
-  color: #333; 
-  margin-bottom: 20px;
-  font-size: 28px;
+h1 {
+  text-align: center;
+  color: #333;
 }
-.table-container {
-  max-height: 600px;
-  overflow-y: auto;
-  border-radius: 14px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 18px;
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
 }
-table { 
-  width: 100%; 
-  border-collapse: separate; 
-  border-spacing: 0; 
-  font-size: 18px; 
-  background: #fff; 
-}
-th { 
-  background: linear-gradient(135deg, #ff9900, #ffb84d); 
-  color: #fff; 
-  padding: 14px 10px;
+th, td {
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+  padding: 12px;
   text-align: left;
-  font-weight: 600;
 }
-td { 
-  padding: 12px 10px; 
-  text-align: left; 
-  border-bottom: 1px solid #e0e0e0; 
-  border-right: 1px solid #e0e0e0;
-  transition: background-color 0.3s ease, transform 0.3s ease;
+th {
+  background-color: #ff9900;
+  color: #fff;
 }
-td:last-child {
-  border-right: none;
+tr:hover {
+  background-color: #90ee90;
+  transition: background-color 0.3s;
+  cursor: default;
 }
-tbody tr:nth-child(even) { 
-  background: linear-gradient(to right, #f9f9f9, #f1f3f6);
-}
-tbody tr:hover {
-  background-color: #90ee90 !important; 
-  transform: scale(1.01);
-  cursor: pointer;
-}
-.highlight-entrada { 
-  background-color: #90ee90 !important; 
+.highlight-entrada {
+  background-color: #90ee90 !important;
   transition: background-color 5s ease;
 }
-.highlight-salida { 
-  background-color: #f88b8b !important; 
+.highlight-salida {
+  background-color: #ff7f7f !important;
   transition: background-color 5s ease;
-}
-table thead tr:first-child th:first-child {
-  border-top-left-radius: 14px;
-}
-table thead tr:first-child th:last-child {
-  border-top-right-radius: 14px;
-}
-table tbody tr:last-child td:first-child {
-  border-bottom-left-radius: 14px;
-}
-table tbody tr:last-child td:last-child {
-  border-bottom-right-radius: 14px;
-}
-@keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(20px);}
-  100% { opacity: 1; transform: translateY(0);}
-}
-tbody tr {
-  animation: fadeInUp 0.5s ease forwards;
 }
 </style>
 </head>
 <body>
+<h1><b>PRETORIANOS:</b> Entrada y salida de propietarios</h1>
+<table id="panelTable">
+  <thead>
+    <tr>
+      <th>#Lote</th>
+      <th>Propietario(a)</th>
+      <th>Hora de Entrada</th>
+      <th>Hora de Salida</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
 
-<h1><b>PRETORIANOS:</b> Entrada y Salida de Propietarios</h1>
-
-<div class="table-container">
-  <table id="panelTable">
-    <thead>
-      <tr>
-        <th>#Lote</th>
-        <th>Propietario(a)</th>
-        <th>Hora de Entrada</th>
-        <th>Hora de Salida</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div>
+<audio id="entradaAudio" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/ENTRADA.mp3"></audio>
+<audio id="salidaAudio" src="https://github.com/pretorianos-catalinas/PROPIETARIOS/blob/main/SALIDA.wav"></audio>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -119,6 +83,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const tableBody = document.querySelector("#panelTable tbody");
+const entradaAudio = document.getElementById("entradaAudio");
+const salidaAudio = document.getElementById("salidaAudio");
 
 const propietariosRef = ref(db, 'propietarios');
 
@@ -137,15 +103,25 @@ onValue(propietariosRef, (snapshot) => {
         propietario: prop.nombre + (prop.apellido ? " " + prop.apellido : ""),
         entrada: eventos[key].entrada || "",
         salida: eventos[key].salida || "",
-        timestamp: eventos[key].timestamp || 0
+        timestamp: eventos[key].timestamp || 0,
+        keyEvent: key
       });
     });
   });
 
+  // Ordenar de más reciente a más antiguo
   allEventos.sort((a,b) => b.timestamp - a.timestamp);
-  if(allEventos.length > 30) allEventos = allEventos.slice(0,30);
 
-  allEventos.forEach((ev, index) => {
+  // Limitar a 30 filas
+  if(allEventos.length > 30){
+    const toRemove = allEventos.slice(30);
+    toRemove.forEach(ev=>{
+      remove(ref(db, `propietarios/${ev.lote}/eventos/${ev.keyEvent}`));
+    });
+    allEventos = allEventos.slice(0,30);
+  }
+
+  allEventos.forEach((ev,index)=>{
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ev.lote}</td>
@@ -155,20 +131,19 @@ onValue(propietariosRef, (snapshot) => {
     `;
     tableBody.appendChild(tr);
 
+    // Resaltar solo el último evento
     if(index === 0){
-      if(ev.salida && !ev.entrada){
-        tr.classList.add("highlight-salida");
-      } else {
-        tr.classList.add("highlight-entrada");
-      }
-      setTimeout(()=>{ 
-        tr.classList.remove("highlight-entrada");
-        tr.classList.remove("highlight-salida");
+      const esEntrada = ev.entrada && !ev.salida;
+      tr.classList.add(esEntrada ? "highlight-entrada" : "highlight-salida");
+      // Reproducir sonido
+      if(esEntrada){ entradaAudio.currentTime = 0; entradaAudio.play(); }
+      else { salidaAudio.currentTime = 0; salidaAudio.play(); }
+      setTimeout(()=>{
+        tr.classList.remove("highlight-entrada", "highlight-salida");
       },5000);
     }
   });
 });
 </script>
-
 </body>
 </html>
