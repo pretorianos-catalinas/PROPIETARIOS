@@ -33,36 +33,11 @@
     tr:nth-child(even) {
       background-color: #f9f9f9;
     }
-    form {
-      margin-top: 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    input, button {
-      padding: 8px;
-      font-size: 16px;
-    }
   </style>
 </head>
 <body>
 
 <h1>Panel de Propietarios</h1>
-
-<!-- Formulario para registrar un nuevo propietario -->
-<form id="registroForm">
-  <input type="text" placeholder="Lote" id="lote" required>
-  <input type="text" placeholder="Nombre" id="nombre" required>
-  <input type="text" placeholder="Apellido" id="apellido">
-  <input type="text" placeholder="DNI" id="dni">
-  <input type="text" placeholder="Contraseña" id="contraseña" required>
-  <input type="text" placeholder="Patente" id="patente">
-  <input type="text" placeholder="Vehículo" id="vehiculo">
-  <input type="text" placeholder="Color" id="color">
-  <input type="text" placeholder="Hora de Entrada" id="entrada" required>
-  <input type="text" placeholder="Hora de Salida" id="salida">
-  <button type="submit">Registrar Evento</button>
-</form>
 
 <table id="panelTable">
   <thead>
@@ -86,7 +61,7 @@
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getDatabase, ref, onValue, push, set, get } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyACIRPKYGEq-Zzqm3c_QXD4DzlXlZHa8Ck",
@@ -101,7 +76,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const panelTable = document.getElementById("panelTable").querySelector("tbody");
-const form = document.getElementById("registroForm");
 
 // Función para actualizar la tabla
 const actualizarTabla = () => {
@@ -146,43 +120,6 @@ const actualizarTabla = () => {
 
 // Inicializar tabla
 actualizarTabla();
-
-// Función para registrar un nuevo evento
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const lote = document.getElementById('lote').value;
-  const nombre = document.getElementById('nombre').value;
-  const apellido = document.getElementById('apellido').value;
-  const dni = document.getElementById('dni').value;
-  const contraseña = document.getElementById('contraseña').value;
-  const patente = document.getElementById('patente').value;
-  const vehiculo = document.getElementById('vehiculo').value;
-  const color = document.getElementById('color').value;
-  const entrada = document.getElementById('entrada').value;
-  const salida = document.getElementById('salida').value;
-
-  const propietarioRef = ref(db, `propietarios/${lote}`);
-  const snapshot = await get(propietarioRef);
-
-  if (!snapshot.exists()) {
-    await set(propietarioRef, {
-      lote,
-      nombre,
-      apellido,
-      dni,
-      contraseña,
-      patente,
-      vehiculo,
-      color
-    });
-  }
-
-  const eventosRef = ref(db, `propietarios/${lote}/eventos`);
-  await push(eventosRef, { entrada, salida });
-
-  form.reset();
-});
 </script>
 
 </body>
