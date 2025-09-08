@@ -11,7 +11,6 @@ body {
   padding: 20px; 
   margin: 0;
 }
-
 h1 { 
   text-align: center; 
   color: #333; 
@@ -19,22 +18,19 @@ h1 {
   font-size: 28px;
   letter-spacing: 1px;
 }
-
-/* Tabla moderna premium */
+.table-container {
+  max-height: 600px;
+  overflow-y: auto;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
 table { 
   width: 100%; 
-  border-collapse: separate; 
-  border-spacing: 0; 
+  border-collapse: collapse; 
   font-size: 18px; 
   margin-top: 20px; 
   background: #fff; 
-  border-radius: 14px; 
-  overflow: hidden;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-  transition: all 0.3s ease;
 }
-
-/* Encabezado con degradado */
 th { 
   background: linear-gradient(135deg, #ff9900, #ffb84d); 
   color: #fff; 
@@ -43,34 +39,24 @@ th {
   font-weight: 600;
   letter-spacing: 0.5px;
 }
-
-/* Celdas */
 td { 
   padding: 12px 10px; 
   text-align: left; 
   border-bottom: 1px solid #e0e0e0; 
   transition: background-color 0.3s ease, transform 0.3s ease;
 }
-
-/* Filas pares con degradado sutil */
 tbody tr:nth-child(even) { 
   background: linear-gradient(to right, #f9f9f9, #f1f3f6);
 }
-
-/* Hover sobre filas */
 tbody tr:hover {
   background-color: #90ee90 !important; 
   transform: scale(1.01);
   cursor: pointer;
 }
-
-/* Resaltado temporal último evento */
 .highlight { 
   background-color: #90ee90 !important; 
   transition: background-color 5s ease;
 }
-
-/* Esquinas redondeadas */
 table thead tr:first-child th:first-child {
   border-top-left-radius: 14px;
 }
@@ -83,20 +69,6 @@ table tbody tr:last-child td:first-child {
 table tbody tr:last-child td:last-child {
   border-bottom-right-radius: 14px;
 }
-
-/* Scroll interno si hay muchas filas */
-tbody {
-  display: block;
-  max-height: 600px;
-  overflow-y: auto;
-}
-thead, tbody tr {
-  display: table;
-  width: 100%;
-  table-layout: fixed;
-}
-
-/* Animación entrada de fila */
 @keyframes fadeInUp {
   0% { opacity: 0; transform: translateY(20px);}
   100% { opacity: 1; transform: translateY(0);}
@@ -110,17 +82,19 @@ tbody tr {
 
 <h1><b>PRETORIANOS:</b> Entrada y Salida de Propietarios</h1>
 
-<table id="panelTable">
-  <thead>
-    <tr>
-      <th>#Lote</th>
-      <th>Propietario(a)</th>
-      <th>Hora de Entrada</th>
-      <th>Hora de Salida</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<div class="table-container">
+  <table id="panelTable">
+    <thead>
+      <tr>
+        <th>#Lote</th>
+        <th>Propietario(a)</th>
+        <th>Hora de Entrada</th>
+        <th>Hora de Salida</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
@@ -162,10 +136,8 @@ onValue(propietariosRef, (snapshot) => {
     });
   });
 
-  // Ordenar de más reciente a más antiguo
   allEventos.sort((a,b) => b.timestamp - a.timestamp);
 
-  // Limitar a máximo 30 filas
   if(allEventos.length > 30) allEventos = allEventos.slice(0,30);
 
   allEventos.forEach((ev, index) => {
@@ -178,7 +150,6 @@ onValue(propietariosRef, (snapshot) => {
     `;
     tableBody.appendChild(tr);
 
-    // Resaltar solo la fila más reciente por 5 segundos
     if (index === 0) {
       tr.classList.add("highlight");
       setTimeout(() => { tr.classList.remove("highlight"); }, 5000);
