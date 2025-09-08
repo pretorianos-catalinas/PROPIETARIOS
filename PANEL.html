@@ -5,34 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel de Propietarios</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #333;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 18px;
-      margin-top: 20px;
-      background: #fff;
-    }
-    th, td {
-      border: 2px solid #000;
-      padding: 8px;
-      text-align: left;
-    }
-    th {
-      background-color: #ff9900;
-      color: #fff;
-    }
-    tr:nth-child(even) {
-      background-color: #f9f9f9;
-    }
+    body { font-family: Arial, sans-serif; background: #f2f2f2; padding: 20px; }
+    h1 { text-align: center; color: #333; }
+    table { width: 100%; border-collapse: collapse; font-size: 18px; margin-top: 20px; background: #fff; }
+    th, td { border: 2px solid #000; padding: 8px; text-align: left; }
+    th { background-color: #ff9900; color: #fff; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
   </style>
 </head>
 <body>
@@ -55,7 +33,7 @@
     </tr>
   </thead>
   <tbody>
-    <!-- Filas dinámicas de Firebase -->
+    <!-- Filas dinámicas -->
   </tbody>
 </table>
 
@@ -77,48 +55,60 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const panelTable = document.getElementById("panelTable").querySelector("tbody");
 
-// Función para actualizar la tabla
+// Función para actualizar la tabla en tiempo real
 const actualizarTabla = () => {
   const propietariosRef = ref(db, 'propietarios');
   onValue(propietariosRef, (snapshot) => {
-    panelTable.innerHTML = "";
-    let contador = 0;
+    panelTable.innerHTML = ""; // limpiar tabla
+
+    let todasFilas = [];
 
     snapshot.forEach((childSnap) => {
       const prop = childSnap.val();
       const eventosObj = prop.eventos || {};
 
-      // Convertir objetos de eventos a array y ordenar por fecha descendente
-      const eventosArray = Object.values(eventosObj).sort((a, b) => {
-        const fechaA = new Date(a.entrada || a.salida || 0).getTime();
-        const fechaB = new Date(b.entrada || b.salida || 0).getTime();
-        return fechaB - fechaA; // Descendente
+      // Convertir eventos a array
+      Object.values(eventosObj).forEach((evento) => {
+        todasFilas.push({
+          lote: prop.lote,
+          nombre: prop.nombre,
+          apellido: prop.apellido || '',
+          dni: prop.dni || '',
+          contraseña: prop.contraseña,
+          patente: prop.patente || '',
+          vehiculo: prop.vehiculo || '',
+          color: prop.color || '',
+          entrada: evento.entrada || '',
+          salida: evento.salida || '',
+          fecha: new Date(evento.entrada || evento.salida || 0).getTime() // para ordenar
+        });
       });
+    });
 
-      eventosArray.forEach((evento) => {
-        if (contador >= 50) return;
-        const tr = document.createElement("tr");
+    // Ordenar por fecha descendente
+    todasFilas.sort((a, b) => b.fecha - a.fecha);
 
-        tr.innerHTML = `
-          <td>${prop.lote}</td>
-          <td>${prop.nombre}</td>
-          <td>${prop.apellido || ''}</td>
-          <td>${prop.dni || ''}</td>
-          <td>${prop.contraseña}</td>
-          <td>${prop.patente || ''}</td>
-          <td>${prop.vehiculo || ''}</td>
-          <td>${prop.color || ''}</td>
-          <td>${evento.entrada || ''}</td>
-          <td>${evento.salida || ''}</td>
-        `;
-        panelTable.appendChild(tr);
-        contador++;
-      });
+    // Mostrar filas en tabla
+    todasFilas.forEach((fila) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${fila.lote}</td>
+        <td>${fila.nombre}</td>
+        <td>${fila.apellido}</td>
+        <td>${fila.dni}</td>
+        <td>${fila.contraseña}</td>
+        <td>${fila.patente}</td>
+        <td>${fila.vehiculo}</td>
+        <td>${fila.color}</td>
+        <td>${fila.entrada}</td>
+        <td>${fila.salida}</td>
+      `;
+      panelTable.appendChild(tr);
     });
   });
 };
 
-// Inicializar tabla
+// Inicializar
 actualizarTabla();
 </script>
 
